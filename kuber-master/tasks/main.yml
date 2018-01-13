@@ -1,0 +1,35 @@
+---
+  - name: apt-transport-https
+    apt:
+      name: apt-transport-https
+      state: latest
+
+  - name: ca-certificates
+    apt:
+      name: ca-certificates
+      state: latest
+
+  - name: add kuber repo gpg
+    copy:
+      # curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg
+      src: apt-key.gpg
+      dest: /etc/apt/trusted.gpg.d/kuber.gpg
+
+  - name: add kuber repo file
+    apt_repository:
+      repo: deb https://mirrors.ustc.edu.cn/kubernetes/apt/  kubernetes-xenial main
+      filename: kuber
+      update_cache: yes
+      state: present
+
+  - name: install kubeadm kubectl kubelet
+    apt:
+      name: "{{item}}"
+      state: present
+    with_items:
+      - kubeadm
+      - kubectl
+      - kubelet
+    tags:
+      - kuber-install
+      
