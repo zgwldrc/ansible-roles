@@ -1,7 +1,4 @@
 ---
-- hosts: "all"
-  
-  tasks:
   - name: "rendering hosts template"
     template:
       src: "hosts"
