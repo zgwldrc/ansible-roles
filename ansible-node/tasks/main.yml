@@ -1,0 +1,11 @@
+---
+- hosts: "all"
+  
+  tasks:
+  - name: "rendering hosts template"
+    template:
+      src: "hosts"
+      dest: "/etc/hosts"
+  - name: "change hostname"
+    hostname:
+      name: "{{ansible_fqdn}}"
