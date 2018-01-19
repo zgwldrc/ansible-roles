@@ -5,4 +5,4 @@
       dest: "/etc/hosts"
   - name: "change hostname"
     hostname:
-      name: "{{ansible_fqdn}}"
+      name: "{{inventory_hostname}}"

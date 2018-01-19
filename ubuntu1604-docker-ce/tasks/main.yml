@@ -3,6 +3,7 @@
     apt:
       name: apt-transport-https
       state: latest
+
   - name: ca-certificates
     apt:
       name: ca-certificates
