@@ -1,0 +1,25 @@
+---
+  - name: install the packages required
+    yum:
+      name: "{{item}}"
+      state: latest
+    with_items:
+      - yum-utils
+      - device-mapper-persistent-data
+      - lvm2
+
+  - name: Add repository
+    yum_repository:
+      name: docker-ce-stable
+      description: Docker CE Stable - $basearch
+      baseurl: https://mirrors.aliyun.com/docker-ce/linux/centos/7/$basearch/stable
+      gpgcheck: yes
+      gpgkey: https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
+
+  - name: install docker-ce
+    yum:
+      name: docker-ce-17.06.2.ce-1.el7.centos.x86_64
+      enablerepo: docker-ce-stable
+      state: present
+    tags:
+      - install

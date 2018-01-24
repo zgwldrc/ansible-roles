@@ -1,0 +1,17 @@
+---
+- name: "ensure kubeconfig's parent directory exists on target system"
+  file:
+    path: "{{item}}"
+    state: directory
+  with_items:
+    - "/var/lib/kubelet"
+    - "/var/lib/kube-proxy"
+
+- name: "distribute kubeconfig"
+  copy:
+    src: "{{kubeconfig}}"
+    dest: "{{item}}"
+  with_items:
+  - "/var/lib/kubelet/kubeconfig"
+  - "/var/lib/kube-proxy/kubeconfig"
+    
