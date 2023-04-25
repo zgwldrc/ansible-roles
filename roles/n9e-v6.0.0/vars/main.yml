@@ -1,0 +1,18 @@
+---
+# vars file for n9e-v6.0.0
+uninstall: false
+version: 6.0.0-ga.5
+tarball: "n9e-v{{version}}-linux-amd64.tar.gz"
+urlpath: "https://download.flashcat.cloud/{{tarball}}"
+download_dest: "/tmp/{{tarball}}"
+home: "/data/n9e/{{version}}"
+user: david
+group: david
+
+mysql:
+  enabled: true
+redis:
+  enabled: true
+
+
+

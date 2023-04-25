@@ -1,0 +1,30 @@
+---
+# tasks file for n9e-v6.0.0
+
+- name: remove home dir
+  file:
+    path: "{{home}}"
+    state: absent
+
+- name: remove systemd unit file
+  file:
+    path: "/etc/systemd/system/{{item}}"
+    state: absent
+  with_items:
+    - n9e-server.service
+    - n9e-webapi.service
+
+- name: remove n9e shortcuts commands
+  blockinfile:
+    path: "~/.bash_profile"
+    marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      alias {{item}}-status='systemctl status {{item}}.service'
+      alias {{item}}-start='systemctl start {{item}}.service'
+      alias {{item}}-stop='systemctl stop {{item}}.service'
+      alias {{item}}-restart='systemctl restart {{item}}.service'
+    create: true
+    state: absent
+  loop:
+    - "n9e-webapi"
+    - "n9e-server"

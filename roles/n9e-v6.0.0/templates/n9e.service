@@ -1,0 +1,13 @@
+[Unit]
+Description="n9e server"
+After=network.target
+
+[Service]
+Type=simple
+User={{user}}
+Group={{group}}
+WorkingDirectory={{home}}
+ExecStart={{home}}/n9e
+
+[Install]
+WantedBy=multi-user.target

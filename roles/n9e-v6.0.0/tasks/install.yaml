@@ -1,0 +1,90 @@
+---
+# tasks file for n9e-v6.0.0
+- name: check if downloaded
+  stat:
+    path: "{{download_dest}}"
+  register: downloaded
+
+- name: Download n9e
+  when: not downloaded.stat.exists
+  get_url:
+    url: "{{urlpath}}"
+    dest: "{{download_dest}}"
+
+- name: create temp dir
+  tempfile:
+    state: directory
+  register: tempdir
+
+- name: unarchive tallball
+  unarchive:
+    src: "{{download_dest}}"
+    dest: "{{tempdir.path}}"
+    remote_src: yes
+
+- name: ensure home dir created
+  file:
+    path: "{{home}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+
+- name: sync to home dir
+  ansible.posix.synchronize:
+    src: "{{tempdir.path}}/"
+    dest: "{{home}}/"
+  delegate_to: "{{ inventory_hostname }}"
+
+- name: ensure home dir owner and group
+  file:
+    path: "{{home}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+    recurse: yes
+
+- name: clean temp dir
+  when: tempdir is defined
+  file:
+    path: "{{tempdir.path}}"
+    state: absent
+
+- name: create systemd unit file
+  template:
+    src: "{{item}}"
+    dest: "/etc/systemd/system/{{item}}"
+  loop:
+    - n9e.service
+
+- name: add n9e shortcuts commands
+  blockinfile:
+    path: "~/.bash_profile"
+    marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      alias {{item}}status='systemctl status {{item}}.service'
+      alias {{item}}start='systemctl start {{item}}.service'
+      alias {{item}}stop='systemctl stop {{item}}.service'
+      alias {{item}}restart='systemctl restart {{item}}.service'
+    create: true
+  loop:
+    - "n9e"
+
+- name: local mysql install
+  when: mysql.enabled
+  block:
+  - name: install mysql
+    apt:
+      pkg:
+        - mysql-server
+
+- name: local redis install
+  when: redis.enabled
+  apt:
+    pkg:
+      - redis-server
+
+- name: start and enable n9e systemd service
+  systemd:
+    name: n9e
+    state: started
+    enabled: true
