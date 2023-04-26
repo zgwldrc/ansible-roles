@@ -1,0 +1,127 @@
+---
+- name: check if downloaded
+  stat:
+    path: "{{download_dest}}"
+  register: downloaded
+
+- name: "Download {{name}}"
+  when: not downloaded.stat.exists
+  get_url:
+    url: "{{urlpath}}"
+    dest: "{{download_dest}}"
+
+- name: create temp dir
+  tempfile:
+    state: directory
+  register: tempdir
+
+- name: unarchive
+  unarchive:
+    src: "{{download_dest}}"
+    dest: "{{tempdir.path}}"
+    remote_src: yes
+
+- name: group create
+  group:
+    name: "{{group}}"
+    state: present
+
+- name: user create
+  user:
+    name: "{{user}}"
+    group: "{{group}}"
+
+- name: ensure home dir created
+  file:
+    path: "{{home}}/{{item}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop:
+    - "conf"
+
+- name: sync to home dir
+  ansible.posix.synchronize:
+    src: "{{tempdir.path}}/"
+    dest: "{{home}}/"
+  delegate_to: "{{ inventory_hostname }}"
+
+- name: ensure home dir owner and group
+  file:
+    path: "{{home}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+    recurse: yes
+
+- name: clean temp dir
+  when: tempdir is defined
+  file:
+    path: "{{tempdir.path}}"
+    state: absent
+
+- name: create systemd unit file
+  template:
+    src: "{{name}}.service"
+    dest: "/etc/systemd/system/{{name}}.service"
+
+- name: add {{name}} shortcuts commands
+  blockinfile:
+    path: "~/.bash_profile"
+    marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      alias {{item}}status='systemctl status {{item}}.service'
+      alias {{item}}start='systemctl start {{item}}.service'
+      alias {{item}}stop='systemctl stop {{item}}.service'
+      alias {{item}}restart='systemctl restart {{item}}.service'
+    create: true
+  loop:
+    - "{{name}}"
+
+
+- name: Create a symbolic link
+  ansible.builtin.file:
+    src: "{{home}}/{{name}}"
+    dest: "/usr/bin/{{name}}"
+    owner: "{{user}}"
+    group: "{{group}}"
+    state: link
+
+- name: sync scripts
+  ansible.posix.synchronize:
+    src: learn-consul-get-started-vms/
+    dest: "{{home}}/gs-scripts/"
+
+- name: gen config
+  shell: |
+    {{home}}/gs-scripts/scripts/generate_consul_server_config.sh
+  args:
+    chdir: "{{home}}/gs-scripts/scripts/"
+  environment:
+    DATACENTER: "{{DATACENTER}}"
+    DOMAIN: "{{DOMAIN}}"
+    CONSUL_DATA_DIR: "{{CONSUL_DATA_DIR}}"
+    CONSUL_CONFIG_DIR: "{{CONSUL_CONFIG_DIR}}"
+    DNS_RECURSOR: "{{DNS_RECURSOR}}"
+    HTTPS_PORT: "{{HTTPS_PORT}}"
+    DNS_PORT: "{{8600}}"
+    log_level: "{{log_level}}"
+
+- name: ensure home dir owner and group
+  file:
+    path: "{{home}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+    recurse: yes
+
+- name: "start and enable {{name}} systemd service"
+  systemd:
+    name: "{{name}}"
+    state: started
+    enabled: true
+    daemon_reload: true
+
+
+- name: configure cli to inter with consul
+  

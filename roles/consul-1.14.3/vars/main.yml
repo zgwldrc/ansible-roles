@@ -1,0 +1,21 @@
+---
+# vars file for consul-1.14.3
+name: consul
+uninstall: false
+version: 1.14.3
+zipfile: "consul_{{version}}_linux_amd64.zip"
+urlpath: "https://releases.hashicorp.com/consul/{{version}}/{{zipfile}}"
+download_dest: "/tmp/{{zipfile}}"
+home: "/data/{{name}}/{{version}}"
+user: consul
+group: consul
+
+# config generate relative
+DATACENTER: dc1
+DOMAIN: consul
+CONSUL_DATA_DIR: "{{home}}/data"
+CONSUL_CONFIG_DIR: "{{home}}/conf"
+DNS_RECURSOR: 1.1.1.1
+HTTPS_PORT: 8443
+DNS_PORT: 8600
+log_level: DEBUG
