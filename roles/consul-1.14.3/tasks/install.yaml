@@ -4,7 +4,7 @@
     path: "{{download_dest}}"
   register: downloaded
 
-- name: "Download {{name}}"
+- name: "Download {{systemd_name}}"
   when: not downloaded.stat.exists
   get_url:
     url: "{{urlpath}}"
@@ -21,24 +21,27 @@
     dest: "{{tempdir.path}}"
     remote_src: yes
 
+- name: user create
+  user:
+    name: "{{user}}"
+    state: present
+
 - name: group create
   group:
     name: "{{group}}"
     state: present
 
-- name: user create
-  user:
-    name: "{{user}}"
-    group: "{{group}}"
-
-- name: ensure home dir created
+- name: ensure home and relavtive dirs created
   file:
-    path: "{{home}}/{{item}}"
+    path: "{{item}}"
     state: directory
     owner: "{{user}}"
     group: "{{group}}"
   loop:
-    - "conf"
+    - "{{home}}"
+    - "{{CONSUL_DATA_DIR}}"
+    - "{{CONSUL_CONFIG_DIR}}"
+    - "{{CONSUL_TOKEN_DIR}}"
 
 - name: sync to home dir
   ansible.posix.synchronize:
@@ -62,10 +65,10 @@
 
 - name: create systemd unit file
   template:
-    src: "{{name}}.service"
-    dest: "/etc/systemd/system/{{name}}.service"
+    src: "{{systemd_name}}.service"
+    dest: "/etc/systemd/system/{{systemd_name}}.service"
 
-- name: add {{name}} shortcuts commands
+- name: add {{systemd_name}} shortcuts commands
   blockinfile:
     path: "~/.bash_profile"
     marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
@@ -76,36 +79,50 @@
       alias {{item}}restart='systemctl restart {{item}}.service'
     create: true
   loop:
-    - "{{name}}"
+    - "{{systemd_name}}"
 
 
 - name: Create a symbolic link
   ansible.builtin.file:
-    src: "{{home}}/{{name}}"
-    dest: "/usr/bin/{{name}}"
+    src: "{{home}}/{{systemd_name}}"
+    dest: "/usr/bin/{{systemd_name}}"
     owner: "{{user}}"
     group: "{{group}}"
     state: link
 
-- name: sync scripts
-  ansible.posix.synchronize:
-    src: learn-consul-get-started-vms/
-    dest: "{{home}}/gs-scripts/"
-
 - name: gen config
+  template:
+    src: "{{item}}"
+    dest: "{{CONSUL_CONFIG_DIR}}/{{item}}"
+  loop:
+    - agent-server-secure.hcl
+    - agent-server-specific.hcl
+    - agent-server-tls.hcl
+    - agent-server-acl.hcl
+
+- name: "Generate gossip encryption key configuration - agent-gossip-encryption.hcl"
   shell: |
-    {{home}}/gs-scripts/scripts/generate_consul_server_config.sh
+    echo encrypt = \"$(consul keygen)\" > {{CONSUL_CONFIG_DIR}}/agent-gossip-encryption.hcl
   args:
-    chdir: "{{home}}/gs-scripts/scripts/"
-  environment:
-    DATACENTER: "{{DATACENTER}}"
-    DOMAIN: "{{DOMAIN}}"
-    CONSUL_DATA_DIR: "{{CONSUL_DATA_DIR}}"
-    CONSUL_CONFIG_DIR: "{{CONSUL_CONFIG_DIR}}"
-    DNS_RECURSOR: "{{DNS_RECURSOR}}"
-    HTTPS_PORT: "{{HTTPS_PORT}}"
-    DNS_PORT: "{{8600}}"
-    log_level: "{{log_level}}"
+    chdir: "{{CONSUL_CONFIG_DIR}}"
+
+- name: "Create CA for Consul datacenter"
+  shell: |
+    consul tls ca create -domain={{DOMAIN}}
+  args:
+    chdir: "{{CONSUL_CONFIG_DIR}}"
+    creates: "{{DOMAIN}}-agent-ca.pem"
+
+- name: "Create server Certificate and key pair"
+  shell: |
+    consul tls cert create -server -domain {{DOMAIN}} -dc={{DATACENTER}}
+  args:
+    chdir: "{{CONSUL_CONFIG_DIR}}"
+    creates: "{{DATACENTER}}-server-{{DOMAIN}}-0.pem"
+
+- name: "Validate configuration"
+  shell: |
+    consul validate {{CONSUL_CONFIG_DIR}}  
 
 - name: ensure home dir owner and group
   file:
@@ -115,13 +132,95 @@
     group: "{{group}}"
     recurse: yes
 
-- name: "start and enable {{name}} systemd service"
+- name: "start and enable {{systemd_name}} systemd service"
   systemd:
-    name: "{{name}}"
+    name: "{{systemd_name}}"
     state: started
     enabled: true
     daemon_reload: true
 
+###
+- name: "install jq"
+  copy:
+    src: "jq-linux64"
+    dest: /usr/local/bin/jq
+    mode: '0755'
 
-- name: configure cli to inter with consul
+- name: "get management token"
+  shell: |
+      if [[ ! -e "acl-token-bootstrap.json" ]];then
+        consul acl bootstrap --format json > acl-token-bootstrap.json
+      fi
+  args:
+    chdir: "{{CONSUL_TOKEN_DIR}}"
+    creates: acl-token-bootstrap.json
+
+- name: register SecretID
+  shell: |
+    jq -r ".SecretID" acl-token-bootstrap.json
+  args:
+    chdir: "{{CONSUL_TOKEN_DIR}}"
+  register: SecretID
   
+- name: "export token in bash_profile"
+  lineinfile:
+    path: ~/.bash_profile
+    line: "export CONSUL_HTTP_TOKEN=\"{{SecretID.stdout}}\""
+
+- name: Create the policy files
+  block:
+  - name: generate policy file
+    template:
+      src: "{{item}}"
+      dest: "{{CONSUL_POLICY_DIR}}/{{item}}"
+    loop:
+      - "acl-policy-dns.hcl"
+      - "acl-policy-server-node.hcl"
+  - name: "apply policy to consul server"
+    shell: |      
+      p1=$(consul acl policy list -format=json | jq -r '.[] | select(.Name == "acl-policy-dns").Name')
+      if [[ "$p1" != "acl-policy-dns"  ]];then
+        consul acl policy create -name 'acl-policy-dns' -description 'Policy for DNS endpoints' -rules @./acl-policy-dns.hcl
+      fi
+
+      p2=$(consul acl policy list -format=json | jq -r '.[] | select(.Name == "acl-policy-server-node").Name')
+      if [[ "$p2" != "acl-policy-server-node"  ]];then
+        consul acl policy create -name 'acl-policy-server-node' -description 'Policy for Server nodes' -rules @./acl-policy-server-node.hcl
+      fi
+    args:
+      chdir: "{{CONSUL_POLICY_DIR}}"
+    environment:
+      CONSUL_HTTP_TOKEN: "{{SecretID.stdout}}"
+
+
+- name: "Create ACL tokens for each policy"
+  shell: |
+    if [ ! -s "{{CONSUL_TOKEN_DIR}}/acl-token-dns.json" ];then
+      consul acl token create -description 'DNS - Default token' -policy-name acl-policy-dns --format json > {{CONSUL_TOKEN_DIR}}/acl-token-dns.json
+    fi
+    if [ ! -s "{{CONSUL_TOKEN_DIR}}/acl-token-server.json" ];then
+      consul acl token create -description "server agent token" -policy-name acl-policy-server-node  --format json > {{CONSUL_TOKEN_DIR}}/acl-token-server.json
+    fi
+  args:
+    chdir: "{{CONSUL_TOKEN_DIR}}"
+  environment:
+    CONSUL_HTTP_TOKEN: "{{SecretID.stdout}}"
+
+- name: "Assign tokens to the server agent"
+  shell: |
+    consul acl set-agent-token default $(jq -r ".SecretID" acl-token-dns.json)
+    consul acl set-agent-token agent $(jq -r ".SecretID" acl-token-server.json)
+  args:
+    chdir: "{{CONSUL_TOKEN_DIR}}"
+  environment:
+    CONSUL_HTTP_TOKEN: "{{SecretID.stdout}}"
+
+- name: ensure home dir owner and group
+  file:
+    path: "{{home}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+    recurse: yes
+      
+

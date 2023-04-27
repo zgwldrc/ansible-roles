@@ -1,21 +1,72 @@
 ---
 # vars file for consul-1.14.3
-name: consul
+systemd_name: consul
 uninstall: false
 version: 1.14.3
 zipfile: "consul_{{version}}_linux_amd64.zip"
 urlpath: "https://releases.hashicorp.com/consul/{{version}}/{{zipfile}}"
 download_dest: "/tmp/{{zipfile}}"
-home: "/data/{{name}}/{{version}}"
+home: "/data/{{systemd_name}}/{{version}}"
 user: consul
 group: consul
 
-# config generate relative
-DATACENTER: dc1
-DOMAIN: consul
 CONSUL_DATA_DIR: "{{home}}/data"
 CONSUL_CONFIG_DIR: "{{home}}/conf"
-DNS_RECURSOR: 1.1.1.1
-HTTPS_PORT: 8443
-DNS_PORT: 8600
-log_level: DEBUG
+CONSUL_POLICY_DIR: "{{CONSUL_CONFIG_DIR}}/policies"
+CONSUL_TOKEN_DIR: "{{CONSUL_CONFIG_DIR}}/tokens"
+DATACENTER: dc1
+DOMAIN: consul
+
+# https://developer.hashicorp.com/consul/tutorials/production-deploy/deployment-guide#server-specific-configuration
+config:
+  #### agent-server-secure.hcl
+  ## config generate relative
+  data_dir: "{{CONSUL_DATA_DIR}}"
+  # Enable service mesh
+  connect:
+    enabled: true
+  addresses:
+    grpc: 127.0.0.1
+    https: 0.0.0.0
+    dns: 0.0.0.0
+  ports:
+    grpc_tls: 8502
+    http: 8500
+    https: 8443
+    dns: 8600
+  # Disable script checks
+  enable_script_checks: false
+  # Enable local script checks
+  enable_local_script_checks: true
+  recursors: 
+  - 1.1.1.1
+  log_level: DEBUG
+
+    
+  #### agent-server-specific.hcl
+  ## Server specific configuration
+  # This flag is used to control if an agent is in server or client mode.
+  server: true
+  # Replace the bootstrap_expect value with the number of
+  # Consul servers you will use; three or five is recommended.
+  bootstrap_expect: 1
+  datacenter: "dc1"
+  # By default, Consul will bind on all available addresses 
+  # on the machine and expose client interfaces only on localhost/127.0.0.1.
+  client_addr: "127.0.0.1"
+  # Consul agent will bind to all addresses on the local machine and will advertise the private IPv4 address to the rest of the datacenter.
+  # There are some cases when you want to specify the bind address for your Consul server:
+  # - the Consul node has multiple private IP addresses available
+  # - the Consul node has only public IP addresses available
+  # If there are multiple private IPv4 addresses available, Consul will exit with an error at startup:
+  # Multiple private IPv4 addresses found. Please configure one with 'bind' and/or 'advertise'.
+  # To prevent this from happening it is possible to define on which address Consul will bind using the bind_addr parameter.
+  # bind_addr: "172.16.0.10"
+  
+  ## UI configuration (1.9+)
+  ui_config:
+    enabled: true
+
+
+  performance:
+    raft_multiplier: 1
