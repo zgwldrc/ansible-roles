@@ -42,6 +42,7 @@
     - "{{CONSUL_DATA_DIR}}"
     - "{{CONSUL_CONFIG_DIR}}"
     - "{{CONSUL_TOKEN_DIR}}"
+    - "{{CONSUL_POLICY_DIR}}"
 
 - name: sync to home dir
   ansible.posix.synchronize:
