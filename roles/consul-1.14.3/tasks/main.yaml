@@ -4,5 +4,9 @@
 - name: install
   when: not uninstall
   include_tasks: "{{role_path}}/tasks/install.yaml"
-
-
+- name: server_init
+  when: config.server
+  include_tasks: "{{role_path}}/tasks/server_init.yaml"
+- name: client_init
+  when: not config.server
+  include_tasks: "{{role_path}}/tasks/client_init.yaml"

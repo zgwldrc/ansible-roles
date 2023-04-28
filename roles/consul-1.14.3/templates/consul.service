@@ -9,7 +9,7 @@ After=network-online.target
 EnvironmentFile=-{{home}}/consul.env
 User={{user}}
 Group={{group}}
-ExecStart={{home}}/consul agent -node=consul -config-dir={{home}}/conf/
+ExecStart={{home}}/consul agent -node={{SERVER_NAME}} -config-dir={{home}}/conf/
 ExecReload=/bin/kill --signal HUP $MAINPID
 KillMode=process
 KillSignal=SIGTERM

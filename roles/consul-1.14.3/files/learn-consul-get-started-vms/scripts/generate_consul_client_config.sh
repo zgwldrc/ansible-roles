@@ -171,7 +171,7 @@ service {
   tags = ["v1"]
   port = 8080
   
-  checks =[ 
+  checks =[
     {
       id =  "check-public-api",
       name = "Public API status check",

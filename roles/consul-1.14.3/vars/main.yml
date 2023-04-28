@@ -17,6 +17,17 @@ CONSUL_TOKEN_DIR: "{{CONSUL_CONFIG_DIR}}/tokens"
 DATACENTER: dc1
 DOMAIN: consul
 
+# This is a unique name for the agent used as -node opt in startup command line
+NODE_NAME: consul
+# used for retry_join, for client find server
+SERVER_NAME: consul
+FQDN_SUFFIX: ""
+CONSUL_HTTP_ADDR: "https://CONSUL_ADDRESS:8443"
+CONSUL_HTTP_SSL: true
+CONSUL_CACERT: "{{CONSUL_CONFIG_DIR}}/consul-agent-ca.pem"
+CONSUL_TLS_SERVER_NAME: "server.{{DATACENTER}}.{{DOMAIN}}"
+CONSUL_HTTP_TOKEN: ""
+# server config template vars
 # https://developer.hashicorp.com/consul/tutorials/production-deploy/deployment-guide#server-specific-configuration
 config:
   #### agent-server-secure.hcl
@@ -47,6 +58,8 @@ config:
   ## Server specific configuration
   # This flag is used to control if an agent is in server or client mode.
   server: true
+  retry_join:
+    - "{{SERVER_NAME}}"
   # Replace the bootstrap_expect value with the number of
   # Consul servers you will use; three or five is recommended.
   bootstrap_expect: 1
@@ -70,3 +83,20 @@ config:
 
   performance:
     raft_multiplier: 1
+
+
+
+  encrypt: "gossip"
+
+  service:
+    name: demo
+    id: "{{config.service.name}}-1"
+    tags: ["v1"]
+    port: 8080
+    check:
+      id: "check-{{config.service.name}}"
+      name: "Product {{config.service.name}} status check"
+      service_id: "{{config.service.name}}-1"
+      tcp: "localhost:8080"
+      interval: "1s"
+      timeout: "1s"
