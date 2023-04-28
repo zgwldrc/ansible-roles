@@ -1,5 +1,9 @@
 ---
 # tasks file for n9e-v6.0.0
+- name: stop service
+  systemd:
+    name: "{{systemd_name}}"
+    state: stopped
 
 - name: remove home dir
   file:
@@ -11,10 +15,10 @@
     path: "/etc/systemd/system/{{item}}.service"
     state: absent
   with_items:
-    - "{{name}}"
+    - "{{systemd_name}}"
 
 
-- name: "remove {{name}} shortcuts commands"
+- name: "remove {{systemd_name}} shortcuts commands"
   blockinfile:
     path: "~/.bash_profile"
     marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
@@ -26,4 +30,4 @@
     create: true
     state: absent
   loop:
-    - "{{name}}"
+    - "{{systemd_name}}"
