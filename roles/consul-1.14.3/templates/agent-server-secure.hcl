@@ -2,7 +2,7 @@
 
 # Data Persistence
 data_dir = "{{config.data_dir}}"
-
+disable_keyring_file = {{disable_keyring_file|lower}}
 # Logging
 log_level = "{{config.log_level}}"
 

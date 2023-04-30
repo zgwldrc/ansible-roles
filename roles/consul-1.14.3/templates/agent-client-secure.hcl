@@ -2,11 +2,11 @@
 server = false
 datacenter = "{{DATACENTER}}"
 domain = "{{DOMAIN}}" 
-
+disable_keyring_file = {{cli.disable_keyring_file|lower}}
 # Logging
 log_level = "{{config.log_level}}"
 
-retry_join = [ {% for item in config.retry_join %}"{{item}}"{% if not loop.last %},{% endif %}{% endfor %} ]
+retry_join = [ {% for item in cli.retry_join %}"{{item}}"{% if not loop.last %},{% endif %}{% endfor %} ]
 
 # Ports
 

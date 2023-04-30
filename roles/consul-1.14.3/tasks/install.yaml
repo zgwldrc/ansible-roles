@@ -78,6 +78,7 @@
       alias {{item}}start='systemctl start {{item}}.service'
       alias {{item}}stop='systemctl stop {{item}}.service'
       alias {{item}}restart='systemctl restart {{item}}.service'
+      alias {{item}}log='journalctl -u {{item}}.service -f -n 200 -o cat'
     create: true
   loop:
     - "{{systemd_name}}"

@@ -1,1 +1,1 @@
-encrypt = "{{config.encrypt}}"
+encrypt = "{{cli.encrypt}}"

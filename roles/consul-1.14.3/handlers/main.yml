@@ -1,2 +1,6 @@
 ---
 # handlers file for consul-1.14.3
+- name: restart consul
+  systemd:
+    name: "{{systemd_name}}"
+    state: restarted

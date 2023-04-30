@@ -9,6 +9,7 @@ download_dest: "/tmp/{{zipfile}}"
 home: "/data/{{systemd_name}}/{{version}}"
 user: consul
 group: consul
+agent_role: server
 
 CONSUL_DATA_DIR: "{{home}}/data"
 CONSUL_CONFIG_DIR: "{{home}}/conf"
@@ -30,6 +31,7 @@ CONSUL_HTTP_TOKEN: ""
 # server config template vars
 # https://developer.hashicorp.com/consul/tutorials/production-deploy/deployment-guide#server-specific-configuration
 config:
+  disable_keyring_file: true
   #### agent-server-secure.hcl
   ## config generate relative
   data_dir: "{{CONSUL_DATA_DIR}}"
@@ -58,8 +60,6 @@ config:
   ## Server specific configuration
   # This flag is used to control if an agent is in server or client mode.
   server: true
-  retry_join:
-    - "{{SERVER_NAME}}"
   # Replace the bootstrap_expect value with the number of
   # Consul servers you will use; three or five is recommended.
   bootstrap_expect: 1
@@ -85,18 +85,20 @@ config:
     raft_multiplier: 1
 
 
-
+cli:
+  disable_keyring_file: true
+  retry_join:
+    - "{{SERVER_NAME}}"
   encrypt: "gossip"
-
   service:
     name: demo
-    id: "{{config.service.name}}-1"
+    id: "demo-1"
     tags: ["v1"]
     port: 8080
     check:
-      id: "check-{{config.service.name}}"
-      name: "Product {{config.service.name}} status check"
-      service_id: "{{config.service.name}}-1"
+      id: "check-demo"
+      name: "Product demo status check"
+      service_id: "demo-1"
       tcp: "localhost:8080"
       interval: "1s"
       timeout: "1s"

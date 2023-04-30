@@ -6,11 +6,13 @@
     - agent-gossip-encryption.hcl
     - agent-client-acl-tokens.hcl
     - agent-client-secure.hcl
+  notify:
+    - restart consul
 
-- name: "gen svc {{config.service.name}} config"
+- name: "gen svc {{cli.service.name}} config"
   template:
     src: "svc.hcl"
-    dest: "{{CONSUL_CONFIG_DIR}}/svc-{{config.service.name}}.hcl"
+    dest: "{{CONSUL_CONFIG_DIR}}/svc-{{cli.service.name}}.hcl"
 
 - name: copy agent ca pem
   copy:
@@ -48,7 +50,7 @@
     path: "~/.bash_profile"
     block: |
       export CONSUL_HTTP_ADDR="{{CONSUL_HTTP_ADDR}}"
-      export CONSUL_HTTP_SSL={{CONSUL_HTTP_SSL}}
+      export CONSUL_HTTP_SSL="{{CONSUL_HTTP_SSL|lower}}"
       export CONSUL_CACERT="{{CONSUL_CACERT}}"
       export CONSUL_TLS_SERVER_NAME="{{CONSUL_TLS_SERVER_NAME}}"
       export CONSUL_HTTP_TOKEN="{{CONSUL_HTTP_TOKEN}}"
