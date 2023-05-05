@@ -2,7 +2,7 @@
 
 # Data Persistence
 data_dir = "{{config.data_dir}}"
-disable_keyring_file = {{disable_keyring_file|lower}}
+disable_keyring_file = {{config.disable_keyring_file|lower}}
 # Logging
 log_level = "{{config.log_level}}"
 
@@ -14,6 +14,7 @@ connect {
 # Addresses and ports
 addresses {
   grpc = "{{config.addresses.grpc}}"
+  http = "{{config.addresses.http}}"
   https = "{{config.addresses.https}}"
   dns = "{{config.addresses.dns}}"
 }

@@ -26,5 +26,4 @@
     create: true
     state: absent
   loop:
-    - "n9e-webapi"
-    - "n9e-server"
+    - "n9e"

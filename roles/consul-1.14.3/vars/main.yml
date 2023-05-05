@@ -28,6 +28,7 @@ CONSUL_HTTP_SSL: true
 CONSUL_CACERT: "{{CONSUL_CONFIG_DIR}}/consul-agent-ca.pem"
 CONSUL_TLS_SERVER_NAME: "server.{{DATACENTER}}.{{DOMAIN}}"
 CONSUL_HTTP_TOKEN: ""
+
 # server config template vars
 # https://developer.hashicorp.com/consul/tutorials/production-deploy/deployment-guide#server-specific-configuration
 config:
@@ -40,6 +41,7 @@ config:
     enabled: true
   addresses:
     grpc: 127.0.0.1
+    http: 0.0.0.0
     https: 0.0.0.0
     dns: 0.0.0.0
   ports:
@@ -84,7 +86,6 @@ config:
   performance:
     raft_multiplier: 1
 
-
 cli:
   disable_keyring_file: true
   retry_join:
@@ -102,3 +103,8 @@ cli:
       tcp: "localhost:8080"
       interval: "1s"
       timeout: "1s"
+
+# integration config
+itgt_ngx_vh_enabled: false
+itgt_ngx_vh_server_name: "consul.service.consul"
+itgt_ngx_vh_port: 80

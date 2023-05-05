@@ -5,8 +5,12 @@
   when: not uninstall
   include_tasks: "{{role_path}}/tasks/install.yaml"
 - name: server_init
-  when: agent_role == "server"
+  when: 
+    - agent_role == "server"
+    - not uninstall
   include_tasks: "{{role_path}}/tasks/server_init.yaml"
 - name: client_init
-  when: agent_role == "client"
+  when: 
+    - agent_role == "client"
+    - not uninstall
   include_tasks: "{{role_path}}/tasks/client_init.yaml"

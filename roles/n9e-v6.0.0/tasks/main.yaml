@@ -1,8 +1,15 @@
 - name: uninstall
   when: uninstall
   include_tasks: "{{role_path}}/tasks/uninstall.yaml"
+
+- name: test if installed
+  stat:
+    path: "{{exec}}"
+  register: installed
 - name: install
-  when: not uninstall
+  when:
+    - not uninstall
+    - not installed.stat.exists
   include_tasks: "{{role_path}}/tasks/install.yaml"
 
 

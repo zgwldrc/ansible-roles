@@ -1,0 +1,6 @@
+---
+# handlers file for clash-u2210
+- name: restart service
+  systemd:
+    name: "{{systemd_name}}"
+    state: restarted

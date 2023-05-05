@@ -1,0 +1,47 @@
+---
+- name: ensure nginx installed
+  apt:
+    name: nginx
+
+- name: nginx vh config
+  template:
+    src: clash_dashboard.conf
+    dest: /etc/nginx/sites-available/clash_dashboard.conf
+    
+- name: nginx vh config symlink
+  file:
+    state: link
+    src: /etc/nginx/sites-available/clash_dashboard.conf
+    dest: /etc/nginx/sites-enabled/clash_dashboard.conf
+
+- name: create vh root dir
+  file:
+    path: "{{root}}"
+    state: directory
+
+# tasks file for clash-dashboard
+- name: deploy dist.zip
+  block:
+  - name: copy
+    copy:
+      src: dist.zip
+      dest: /tmp/clash_dashboard.zip
+  - name: create tempdir
+    tempfile:
+      state: directory
+    register: _tmpdir
+  - name: unzip
+    unarchive:
+      remote_src: yes
+      src: /tmp/clash_dashboard.zip
+      dest: "{{_tmpdir.path}}"
+  - name: sync     
+    ansible.posix.synchronize:
+      src: "{{_tmpdir.path}}/dist/"
+      dest: "{{root}}/"
+    delegate_to: "{{inventory_hostname}}"
+  - name: remove the temporary file
+    ansible.builtin.file:
+      path: "{{ _tmpdir.path }}"
+      state: absent
+    when: _tmpdir.path is defined

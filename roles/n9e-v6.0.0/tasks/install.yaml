@@ -16,7 +16,7 @@
     state: directory
   register: tempdir
 
-- name: unarchive tallball
+- name: unarchive tarball
   unarchive:
     src: "{{download_dest}}"
     dest: "{{tempdir.path}}"

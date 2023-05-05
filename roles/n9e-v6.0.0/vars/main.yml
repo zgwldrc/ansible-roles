@@ -6,6 +6,7 @@ tarball: "n9e-v{{version}}-linux-amd64.tar.gz"
 urlpath: "https://download.flashcat.cloud/{{tarball}}"
 download_dest: "/tmp/{{tarball}}"
 home: "/data/n9e/{{version}}"
+exec: "{{home}}/n9e"
 user: david
 group: david
 

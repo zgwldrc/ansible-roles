@@ -2,3 +2,4 @@ ansible.cfg
 site.yaml
 roles/consul-1.14.3/files/consul-agent-ca.pem
 consul-agent-ca.pem
+become_password_file.txt

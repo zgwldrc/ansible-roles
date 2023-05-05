@@ -1,0 +1,24 @@
+---
+# vars file for clash-u2210
+systemd_name: clash
+# if install_from set to localfile, will use file under files directory in role
+# if install_from set to network, will use file provided by urlpath
+install_from: localfile
+uninstall: false
+version: 1.15.1
+archive_file: "clash-linux-amd64-v{{version}}.gz"
+urlpath: "https://github.com/Dreamacro/clash/releases/download/v{{version}}/clash-linux-amd64-v{{version}}.gz"
+download_dest: "/tmp/{{archive_file}}"
+home: "/data/{{systemd_name}}/{{version}}"
+bin_dir: "{{home}}/bin"
+conf_dir: "{{home}}/conf"
+exec: "{{bin_dir}}/clash"
+# if exec_link is true , exec will be linked to exec_link_path
+exec_link: true
+exec_link_path: "/usr/sbin/clash"
+user: clash
+group: clash
+
+cfg_subscribes: 
+  - name: a
+    url: b

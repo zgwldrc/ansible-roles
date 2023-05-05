@@ -10,6 +10,7 @@
     - restart consul
 
 - name: "gen svc {{cli.service.name}} config"
+  when: cli.service
   template:
     src: "svc.hcl"
     dest: "{{CONSUL_CONFIG_DIR}}/svc-{{cli.service.name}}.hcl"

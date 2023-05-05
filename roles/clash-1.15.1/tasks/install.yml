@@ -1,0 +1,167 @@
+---
+- name: "install yq"
+  copy:
+    src: "yq_linux_amd64"
+    dest: /usr/local/bin/yq
+    mode: '0755'
+
+- name: user create
+  user:
+    name: "{{user}}"
+    state: present
+
+- name: group create
+  group:
+    name: "{{group}}"
+    state: present
+
+- name: ensure home and relavtive dirs created
+  file:
+    path: "{{item}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop:
+    - "{{home}}"
+    - "{{bin_dir}}"
+    - "{{conf_dir}}"
+
+- name: check if downloaded
+  stat:
+    path: "{{download_dest}}"
+  register: downloaded
+
+- name: "Download {{systemd_name}} from url"
+  when:
+    - not downloaded.stat.exists
+    - install_from == "url"
+  get_url:
+    url: "{{urlpath}}"
+    dest: "{{download_dest}}"
+
+- name: "copy install file from ansible control node"
+  when:
+    - not downloaded.stat.exists
+    - install_from == "localfile"
+  copy:
+    src: "{{archive_file}}"
+    dest: "{{download_dest}}"
+
+- name: check if exec file already exists
+  stat:
+    path: "{{exec}}"
+  register: r_exec
+  
+- name: deploy files
+  when: not r_exec.stat.exists
+  block:
+  - name: create temp dir
+    tempfile:
+      state: directory
+    register: r_tempdir
+
+  - name: gunzip the file
+    shell: |
+      cp  {{download_dest}} {{r_tempdir.path}}
+      gunzip {{r_tempdir.path}}/{{download_dest|basename}}
+    args:
+      chdir: "{{r_tempdir.path}}"
+
+  - name: sync to home dir
+    ansible.posix.synchronize:
+      src: "{{r_tempdir.path}}/clash-linux-amd64-v{{version}}"
+      dest: "{{exec}}"
+    delegate_to: "{{ inventory_hostname }}"
+
+  - name: clean temp dir
+    when: r_tempdir is defined
+    file: 
+      path: "{{r_tempdir.path}}"
+      state: absent
+
+- name: ensure exec permission
+  file:
+    path: "{{exec}}"
+    mode: 0755
+
+- name: config file render
+  template:
+    src: "{{item}}"
+    dest: "{{conf_dir}}/{{item}}"
+  loop:
+    - config.yaml
+
+- name: create systemd unit file
+  template:
+    src: "systemd-unit.service"
+    dest: "/etc/systemd/system/{{systemd_name}}.service"
+
+- name: add {{item}} shortcuts commands
+  blockinfile:
+    path: "/home/{{user}}/.bash_profile"
+    marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      alias {{item}}status='sudo /usr/bin/systemctl status {{item}}.service'
+      alias {{item}}start='sudo /usr/bin/systemctl start {{item}}.service'
+      alias {{item}}stop='sudo /usr/bin/systemctl stop {{item}}.service'
+      alias {{item}}restart='sudo /usr/bin/systemctl restart {{item}}.service'
+      alias {{item}}log='journalctl -u {{item}}.service -n 100 -f -o cat'
+    create: true
+  loop:
+    - "{{systemd_name}}"
+
+- name: add sudo rule file
+  include_tasks: "{{role_path}}/tasks/add_sudorules.yml"
+
+- name: Create a symbolic link
+  when: exec_link
+  ansible.builtin.file:
+    src: "{{exec}}"
+    dest: "{{exec_link_path}}"
+    owner: "{{user}}"
+    group: "{{group}}"
+    state: link
+
+- name: "start and enable {{systemd_name}} systemd service"
+  systemd:
+    name: "{{systemd_name}}"
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: merge original config into provider config
+  when: cfg_subscribes | length > 0
+  shell: |
+    provider_cfg="{{conf_dir}}/{{cfg_subscribes[0].name}}-subscribe.yaml"
+    merged_cfg="{{conf_dir}}/{{cfg_subscribes[0].name}}-subscribe-merged.yaml"
+    local_cfg="{{conf_dir}}/config.yaml"
+    
+    if [[ -s "$provider_cfg" && -s "$local_cfg" ]];then
+      yq ea 'select(fileIndex == 0) * select(fileIndex == 1)' "$provider_cfg" "$local_cfg" > "$merged_cfg"
+    fi
+    
+  args:
+    executable: /bin/bash
+- name: load proxy provider config
+  when: cfg_subscribes | length > 0
+  shell:
+    cmd: |
+      secret="{{secret}}"
+      config="{{conf_dir}}/{{cfg_subscribes[0].name}}-subscribe-merged.yaml"
+      if [[ ! -z "$secret" && -s "$config" ]];then
+        curl -s -XPUT "http://{{external_controller}}/configs" -H 'Authorization: Bearer {{secret}}' -d '{"path":"'$config'"}'
+      else
+        curl -s -XPUT "http://{{external_controller}}/configs" -d '{"path":"'$config'"}'
+      fi
+  args:
+    executable: /bin/bash
+
+- name: ensure home dir owner and group
+  file:
+    path: "{{home}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+    recurse: yes
+      
+    
