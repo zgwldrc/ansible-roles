@@ -1,0 +1,142 @@
+---
+- name: "install jq"
+  copy:
+    src: "jq-linux64"
+    dest: /usr/local/bin/jq
+    mode: '0755'
+    
+- name: check if downloaded
+  stat:
+    path: "{{download_dest}}"
+  register: downloaded
+
+- name: "Download {{systemd_name}}"
+  when: not downloaded.stat.exists
+  block:
+  - name: download from s3_url
+    when: s3_url
+    shell: |
+      aws s3 cp {{s3_url}} {{download_dest}}
+  - name: download from urlpath
+    when: not s3_url
+    get_url:
+      url: "{{urlpath}}"
+      dest: "{{download_dest}}"
+
+- name: chk if has installed
+  stat:
+    path: "{{home}}/consul"
+  register: installed
+
+- name: Deploy zip package
+  when: not installed.stat.exists
+  block:
+  - name: create temp dir
+    tempfile:
+      state: directory
+    register: tempdir
+
+  - name: install unzip
+    block:
+    - name: install unzip using apt
+      when: ansible_facts['distribution'] == "Debian" or ansible_facts['distribution'] == "Ubuntu"
+      apt:
+        pkg:
+          - unzip
+    - name: install unzip using yum
+      when: ansible_facts['distribution'] == "CentOS" or ansible_facts['distribution'] == "RedHat" or ansible_facts['distribution'] == "Amazon"
+      yum:
+        name:
+          - unzip
+
+  - name: unarchive
+    unarchive:
+      src: "{{download_dest}}"
+      dest: "{{tempdir.path}}"
+      remote_src: yes
+
+  - name: user create
+    user:
+      name: "{{user}}"
+      state: present
+
+  - name: group create
+    group:
+      name: "{{group}}"
+      state: present
+
+  - name: ensure home and relavtive dirs created
+    file:
+      path: "{{item}}"
+      state: directory
+      owner: "{{user}}"
+      group: "{{group}}"
+    loop:
+      - "{{home}}"
+      - "{{CONSUL_DATA_DIR}}"
+      - "{{CONSUL_CONFIG_DIR}}"
+      - "{{CONSUL_TOKEN_DIR}}"
+      - "{{CONSUL_POLICY_DIR}}"
+
+  - name: sync to home dir
+    synchronize:
+      src: "{{tempdir.path}}/"
+      dest: "{{home}}/"
+    delegate_to: "{{ inventory_hostname }}"
+
+  - name: ensure home dir owner and group
+    file:
+      path: "{{home}}"
+      state: directory
+      owner: "{{user}}"
+      group: "{{group}}"
+      recurse: yes
+
+  - name: clean temp dir
+    when: tempdir is defined
+    file:
+      path: "{{tempdir.path}}"
+      state: absent
+
+  - name: create systemd unit file
+    template:
+      src: "systemd_unit.service"
+      dest: "/etc/systemd/system/{{systemd_name}}.service"
+
+  - name: add {{systemd_name}} service control shortcuts commands
+    blockinfile:
+      path: "/home/{{user}}/.bash_profile"
+      marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+      block: |
+        alias {{item}}status='sudo systemctl status {{item}}.service'
+        alias {{item}}start='sudo systemctl start {{item}}.service'
+        alias {{item}}stop='sudo systemctl stop {{item}}.service'
+        alias {{item}}restart='sudo systemctl restart {{item}}.service'
+        alias {{item}}log='journalctl -u {{item}}.service -f -n 200 -o cat'
+      create: true
+      owner: "{{user}}"
+      group: "{{group}}"
+    loop:
+      - "{{systemd_name}}"
+
+  - name: add suduers file
+    blockinfile:
+      path: "/etc/sudoers.d/{{user}}"
+      create: true
+      marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+      block: |
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl start {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl stop {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{item}}.service
+    loop:
+      - "{{systemd_name}}"
+
+  - name: Create a symbolic link
+    ansible.builtin.file:
+      src: "{{home}}/consul"
+      dest: "/usr/bin/{{systemd_name}}"
+      owner: "{{user}}"
+      group: "{{group}}"
+      state: link
+    

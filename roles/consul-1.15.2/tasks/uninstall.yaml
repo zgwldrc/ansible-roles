@@ -1,0 +1,48 @@
+---
+# tasks file for n9e-v6.0.0
+- name: stop service
+  systemd:
+    name: "{{systemd_name}}"
+    state: stopped
+
+- name: remove home dir
+  file:
+    path: "{{home}}"
+    state: absent
+
+- name: remove systemd unit file
+  file:
+    path: "/etc/systemd/system/{{item}}.service"
+    state: absent
+  with_items:
+    - "{{systemd_name}}"
+
+
+- name: add {{systemd_name}} service control shortcuts commands
+  blockinfile:
+    path: "/home/{{user}}/.bash_profile"
+    marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      alias {{item}}status='sudo systemctl status {{item}}.service'
+      alias {{item}}start='sudo systemctl start {{item}}.service'
+      alias {{item}}stop='sudo systemctl stop {{item}}.service'
+      alias {{item}}restart='sudo systemctl restart {{item}}.service'
+      alias {{item}}log='journalctl -u {{item}}.service -f -n 200 -o cat'
+    state: absent
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop:
+    - "{{systemd_name}}"
+
+- name: add suduers file
+  blockinfile:
+    path: "/etc/sudoers.d/{{user}}"
+    state: absent
+    marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl start {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl stop {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{item}}.service
+  loop:
+    - "{{systemd_name}}"

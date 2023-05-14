@@ -1,0 +1,88 @@
+- name: "get management token"
+  shell: |
+    consul acl bootstrap --format json > {{CONSUL_TOKEN_DIR}}/acl-token-bootstrap.json
+  args:
+    executable: /bin/bash
+    creates: "{{CONSUL_TOKEN_DIR}}/acl-token-bootstrap.json"
+
+- name: register SecretID
+  shell: |
+    jq -r ".SecretID" acl-token-bootstrap.json
+  args:
+    executable: /bin/bash
+    chdir: "{{CONSUL_TOKEN_DIR}}"
+  register: SecretID
+  
+- name: "export token in bash_profile"
+  lineinfile:
+    path: /home/{{user}}/.bash_profile
+    line: "export CONSUL_HTTP_TOKEN=\"{{SecretID.stdout}}\""
+    create: true
+    owner: "{{user}}"
+    group: "{{group}}"
+
+- name: Create the policy files
+  block:
+  - name: generate policy file
+    template:
+      src: "{{item}}"
+      dest: "{{CONSUL_POLICY_DIR}}/{{item}}"
+    loop:
+      - "acl-policy-dns.hcl"
+      - "acl-policy-server-node.hcl"
+  - name: "apply policy to consul server"
+    shell: |      
+      p1=$(consul acl policy list -token "{{SecretID.stdout}}" -format=json | jq -r '.[] | select(.Name == "acl-policy-dns").Name')
+      if [[ "$p1" != "acl-policy-dns"  ]];then
+        consul acl policy create -token "{{SecretID.stdout}}" -name 'acl-policy-dns' -description 'Policy for DNS endpoints' -rules @./acl-policy-dns.hcl
+      fi
+
+      p2=$(consul acl policy list -token "{{SecretID.stdout}}" -format=json | jq -r '.[] | select(.Name == "acl-policy-server-node").Name')
+      if [[ "$p2" != "acl-policy-server-node"  ]];then
+        consul acl policy create -token "{{SecretID.stdout}}" -name 'acl-policy-server-node' -description 'Policy for Server nodes' -rules @./acl-policy-server-node.hcl
+      fi
+    args:
+      chdir: "{{CONSUL_POLICY_DIR}}"
+      executable: /bin/bash
+    environment:
+      CONSUL_HTTP_TOKEN: "{{SecretID.stdout}}"
+
+
+- name: "Create ACL tokens for each policy"
+  shell: |
+    if [ ! -s "{{CONSUL_TOKEN_DIR}}/acl-token-dns.json" ];then
+      consul acl token create -description 'DNS - Default token' -policy-name acl-policy-dns --format json > {{CONSUL_TOKEN_DIR}}/acl-token-dns.json
+    fi
+    if [ ! -s "{{CONSUL_TOKEN_DIR}}/acl-token-server.json" ];then
+      consul acl token create -description "server agent token" -policy-name acl-policy-server-node  --format json > {{CONSUL_TOKEN_DIR}}/acl-token-server.json
+    fi
+  args:
+    executable: /bin/bash
+    chdir: "{{CONSUL_TOKEN_DIR}}"
+  environment:
+    CONSUL_HTTP_TOKEN: "{{SecretID.stdout}}"
+
+- name: "Assign tokens to the server agent"
+  shell: |
+    consul acl set-agent-token default $(jq -r ".SecretID" acl-token-dns.json)
+    consul acl set-agent-token agent $(jq -r ".SecretID" acl-token-server.json)
+  args:
+    chdir: "{{CONSUL_TOKEN_DIR}}"
+  environment:
+    CONSUL_HTTP_TOKEN: "{{SecretID.stdout}}"
+
+- name: register server node token
+  shell: |
+    jq -r ".SecretID" acl-token-server.json
+  args:
+    executable: /bin/bash
+    chdir: "{{CONSUL_TOKEN_DIR}}"
+  register: ServerToken
+
+- name: ensure home dir owner and group
+  file:
+    path: "{{home}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+    recurse: yes

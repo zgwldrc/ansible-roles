@@ -1,0 +1,25 @@
+- name: "Create CA for Consul Datacenter {{DATACENTER}} with domain {{DOMAIN}}"
+  shell: |
+    consul tls ca create -domain={{DOMAIN}}
+  args:
+    executable: /bin/bash
+    chdir: "{{CONSUL_CONFIG_DIR}}"
+    creates: "{{DOMAIN}}-agent-ca.pem"
+
+- name: "Generate gossip encryption key configuration - agent-gossip-encryption.hcl"
+  shell: |
+    echo encrypt = \"$(consul keygen)\" > {{CONSUL_CONFIG_DIR}}/agent-gossip-encryption.hcl
+  args:
+    creates: "{{CONSUL_CONFIG_DIR}}/agent-gossip-encryption.hcl"
+    executable: /bin/bash
+    chdir: "{{CONSUL_CONFIG_DIR}}"
+
+- name: fetch ca cert, key and gossip encrypt
+  fetch:
+    src: "{{CONSUL_CONFIG_DIR}}/{{item}}"
+    dest: "{{playbook_dir}}/{{item}}"
+    flat: true
+  loop:
+    - "{{DOMAIN}}-agent-ca.pem"
+    - "{{DOMAIN}}-agent-ca-key.pem"
+    - "agent-gossip-encryption.hcl"

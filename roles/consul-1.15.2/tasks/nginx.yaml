@@ -1,0 +1,27 @@
+- name: create ngx vh config
+  when: itgt_ngx_vh_enabled
+  block:
+  - name: test nginx is installed
+    when: ansible_os_family == "Debian"
+    command: dpkg -s nginx
+    register: nginx_installed
+    ignore_errors: true
+  - name: test nginx is installed
+    when: ansible_os_family == "RedHat"
+    command: rpm -q nginx
+    register: nginx_installed
+    ignore_errors: true
+  - name: render vh config file
+    when: nginx_installed.rc == 0
+    template:
+      src: ngx_vh.conf
+      dest: /etc/nginx/sites-available/consul.conf
+  - name: link to sites-enabled
+    when: nginx_installed.rc == 0
+    file:
+      state: link
+      src: /etc/nginx/sites-available/consul.conf
+      dest: /etc/nginx/sites-enabled/consul.conf
+  - name: nginx reload
+    when: nginx_installed.rc == 0
+    command: nginx -s reload

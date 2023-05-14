@@ -1,0 +1,59 @@
+- name: copy ca cert and key
+  when: 
+  - "'ca' not in agent_role"
+  copy:
+    src: "{{playbook_dir}}/{{item}}"
+    dest: "{{CONSUL_CONFIG_DIR}}/{{item}}"
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop:
+    - "{{DOMAIN}}-agent-ca.pem"
+    - "{{DOMAIN}}-agent-ca-key.pem"
+    - "agent-gossip-encryption.hcl"
+
+- name: "Create server Certificate and key pair"
+  shell: |
+    consul tls cert create -server -domain {{DOMAIN}} -dc={{DATACENTER}} -days=3650
+  args:
+    executable: /bin/bash
+    chdir: "{{CONSUL_CONFIG_DIR}}"
+    creates: "{{DATACENTER}}-server-{{DOMAIN}}-0.pem"
+
+- name: gen config
+  template:
+    src: "{{item}}"
+    dest: "{{CONSUL_CONFIG_DIR}}/{{item}}"
+  notify: restart consul
+  loop:
+    - agent-server-secure.hcl
+    - agent-server-specific.hcl
+    - agent-server-tls.hcl
+    - agent-server-acl.hcl
+
+- name: "Validate configuration"
+  shell: |
+    consul validate {{CONSUL_CONFIG_DIR}}  
+  args:
+    executable: /bin/bash
+
+- name: ensure home dir owner and group
+  file:
+    path: "{{home}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+    recurse: yes
+
+- name: "start and enable {{systemd_name}} systemd service"
+  systemd:
+    name: "{{systemd_name}}"
+    state: started
+    enabled: true
+    daemon_reload: true
+
+
+
+
+
+
+

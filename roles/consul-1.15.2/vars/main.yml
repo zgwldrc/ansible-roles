@@ -1,0 +1,73 @@
+---
+# vars file for consul-1.14.3
+systemd_name: consul
+uninstall: false
+version: 1.15.2
+zipfile: "consul_{{version}}_linux_amd64.zip"
+urlpath: "https://releases.hashicorp.com/consul/{{version}}/{{zipfile}}"
+s3_url: ""
+download_dest: "/tmp/{{zipfile}}"
+home: "/data/{{systemd_name}}/{{version}}"
+user: consul
+group: consul
+agent_role: ["server"]
+bootstrap: false
+
+CONSUL_DATA_DIR: "{{home}}/data"
+CONSUL_CONFIG_DIR: "{{home}}/conf"
+CONSUL_POLICY_DIR: "{{CONSUL_CONFIG_DIR}}/policies"
+CONSUL_TOKEN_DIR: "{{CONSUL_CONFIG_DIR}}/tokens"
+DATACENTER: dc1
+DOMAIN: consul
+
+# used for retry_join, for client find server
+SERVER_NAME: consul
+FQDN_SUFFIX: ""
+CONSUL_HTTP_ADDR: "https://CONSUL_ADDRESS:8443"
+CONSUL_HTTP_SSL: true
+CONSUL_CACERT: "{{CONSUL_CONFIG_DIR}}/consul-agent-ca.pem"
+CONSUL_TLS_SERVER_NAME: "server.{{DATACENTER}}.{{DOMAIN}}"
+CONSUL_HTTP_TOKEN: ""
+
+# server config template vars
+# https://developer.hashicorp.com/consul/tutorials/production-deploy/deployment-guide#server-specific-configuration
+#### agent-server-acl.hcl
+default_token: ""
+#### policies/acl-policy-server-node.hcl
+node_prefix: ""
+#### agent-server-specific.hcl
+node_name: "{{inventory_hostname}}"
+server: true
+bootstrap_expect: 1
+datacenter: "dc1"
+client_addr: "127.0.0.1"
+ui_enabled: true
+
+#### agent-server-secure.hcl
+retry_join: ["{{ansible_default_ipv4.address}}"]
+log_level: DEBUG
+disable_keyring_file: true 
+data_dir: "{{CONSUL_DATA_DIR}}"
+connect_enabled: true
+addresses_grpc: 127.0.0.1
+addresses_http: 0.0.0.0
+addresses_https: 0.0.0.0
+addresses_dns: 0.0.0.0
+
+ports_grpc_tls: 8502
+ports_http: 8500
+ports_https: 8443
+ports_dns: 8600
+# Disable script checks
+enable_script_checks: false
+# Enable local script checks
+enable_local_script_checks: true
+recursors: 
+  - 1.1.1.1
+
+
+  
+# integration config
+itgt_ngx_vh_enabled: false
+itgt_ngx_vh_server_name: "consul.service.consul"
+itgt_ngx_vh_port: 80

@@ -3,3 +3,8 @@ site.yaml
 roles/consul-1.14.3/files/consul-agent-ca.pem
 consul-agent-ca.pem
 become_password_file.txt
+acl-token-server.json
+agent-gossip-encryption.hcl
+consul-agent-ca-key.pem
+p1.yaml
+consul_install.yaml

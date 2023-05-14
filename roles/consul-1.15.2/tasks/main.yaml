@@ -1,0 +1,33 @@
+- name: uninstall
+  when: uninstall
+  include_tasks: "{{role_path}}/tasks/uninstall.yaml"
+
+- name: install
+  when: not uninstall
+  include_tasks: "{{role_path}}/tasks/install.yaml"
+
+- name: ca init
+  when: "'ca' in agent_role"
+  include_tasks: "{{role_path}}/tasks/ca_init.yaml"
+
+
+- name: server_init
+  when: 
+    - "'ca' in agent_role or 'server' in agent_role "
+    - not uninstall
+  include_tasks: "{{role_path}}/tasks/server_init.yaml"
+
+- name: bootstrap
+  when:
+    - not uninstall
+    - "'ca' in agent_role"
+    - bootstrap
+  include_tasks: "{{role_path}}/tasks/get_bootstrap_token.yaml"
+
+- name: client_init
+  when: 
+    - "'client' in agent_role"
+    - not uninstall
+  include_tasks: "{{role_path}}/tasks/client_init.yaml"
+
+
