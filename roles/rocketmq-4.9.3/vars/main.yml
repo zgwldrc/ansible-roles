@@ -1,0 +1,19 @@
+---
+systemd_name: rmq_broker
+namesrv_systemd_name: rmq_namesrv
+uninstall: false
+version: 4.9.3
+s3_url: ""
+archive_file: "rocketmq-all-{{version}}-bin-release.zip"
+urlpath: "https://archive.apache.org/dist/rocketmq/{{version}}/rocketmq-all-{{version}}-bin-release.zip"
+download_dest: "/tmp/{{archive_file}}"
+home: "/data/rocketmq/{{version}}"
+bin_dir: "{{home}}/bin"
+conf_dir: "{{home}}/conf"
+exec: "{{bin_dir}}/clash"
+user: "rocketmq"
+group: "rocketmq"
+
+# install openjdk 11
+openjdk11_install: true
+java_home: /usr/lib/jvm/java-11-openjdk-amd64

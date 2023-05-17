@@ -37,6 +37,7 @@
     register: tempdir
 
   - name: install unzip
+    when: not unzip_installed
     block:
     - name: install unzip using apt
       when: ansible_facts['distribution'] == "Debian" or ansible_facts['distribution'] == "Ubuntu"

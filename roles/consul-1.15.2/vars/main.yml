@@ -2,6 +2,7 @@
 # vars file for consul-1.14.3
 systemd_name: consul
 uninstall: false
+unzip_installed: false
 version: 1.15.2
 zipfile: "consul_{{version}}_linux_amd64.zip"
 urlpath: "https://releases.hashicorp.com/consul/{{version}}/{{zipfile}}"
