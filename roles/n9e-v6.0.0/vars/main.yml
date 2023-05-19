@@ -10,6 +10,7 @@ exec: "{{home}}/n9e"
 user: david
 group: david
 
+# install mysql and redis from package manager
 mysql:
   enabled: true
 redis:
