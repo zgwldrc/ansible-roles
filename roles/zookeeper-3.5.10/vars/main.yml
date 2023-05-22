@@ -1,0 +1,43 @@
+---
+## Java relative
+# install openjdk 11
+openjdk11_install: false
+java_home: /usr/local/jkd11
+java_opt: ""
+
+uninstall: false
+install_from_files: true
+systemd_name: zookeeper
+version: 3.5.10
+# if install_from_files: true then copy zip package from files directory in role
+# and skip s3_url and urlpath
+s3_url: ""
+archive_file: "apache-zookeeper-{{version}}-bin.tar.gz"
+urlpath: "https://downloads.apache.org/zookeeper/zookeeper-{{version}}/apache-zookeeper-{{version}}-bin.tar.gz"
+download_dest: "/tmp/{{archive_file}}"
+home: "/data/zookeeper/{{version}}"
+user: "zookeeper"
+group: "zookeeper"
+
+# zookeeper
+# heap mem size in MegaByte
+ZK_SERVER_HEAP: 1000
+ZK_CLIENT_HEAP: 256
+_4lw_commands_whitelist: '*'
+
+# exporter
+exporter_enabled: false
+exporter_systemd_name: zookeeper-exporter
+exporter_version: 0.1.13
+exporter_home: /data/zookeeper-exporter/{{exporter_version}}
+exporter_archive_file: zookeeper-exporter-v{{exporter_version}}-linux.tar.gz
+exporter_download_dest: "/tmp/{{exporter_archive_file}}"
+exporter_urlpath: "https://github.com/dabealu/zookeeper-exporter/releases/download/v0.1.13/zookeeper-exporter-v0.1.13-linux.tar.gz"
+exporter_s3_url: "" 
+exporter_listen_port: 9141
+
+
+
+
+
+

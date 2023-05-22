@@ -1,19 +1,78 @@
 ---
-systemd_name: rmq_broker
-namesrv_systemd_name: rmq_namesrv
 uninstall: false
+install_from_files: true
+# shared for broker, console and exporter
+namesrvAddrs: ["127.0.0.1:9876"]
+
+systemd_name: rmq_broker
 version: 4.9.3
+
+namesrv_enabled: false
+namesrv_systemd_name: rmq_namesrv
+
+# console
+console_enabled: false
+console_systemd_name: rmq_console
+console_version: 1.0.0
+console_home: /data/rocketmq-console/{{console_version}}
+console_archive_file: rocketmq-console-ng-1.0.0.jar
+console_download_dest: "{{console_home}}/{{console_archive_file}}"
+console_urlpath: ""
+console_s3_url: ""
+console_Xms: 256m
+console_Xmx: 256m
+console_Xmn: 256m
+console_server_port: 8080
+
+# exporter
+exporter_enabled: false
+exporter_systemd_name: rmq_exporter
+exporter_version: 0.0.2
+exporter_home: /data/rocketmq-exporter/{{exporter_version}}
+exporter_archive_file: rocketmq-exporter-{{exporter_version}}-SNAPSHOT-exec.jar
+exporter_download_dest: "{{exporter_home}}/{{exporter_archive_file}}"
+exporter_urlpath: "https://github.com/apache/rocketmq-exporter"
+exporter_s3_url: ""
+exporter_Xms: 256m
+exporter_Xmx: 256m
+exporter_Xmn: 128m
+exporter_server_port: 5557
+
+# if install_from_files: true then copy zip package from files directory in role
+# and skip s3_url and urlpath
 s3_url: ""
 archive_file: "rocketmq-all-{{version}}-bin-release.zip"
 urlpath: "https://archive.apache.org/dist/rocketmq/{{version}}/rocketmq-all-{{version}}-bin-release.zip"
 download_dest: "/tmp/{{archive_file}}"
 home: "/data/rocketmq/{{version}}"
-bin_dir: "{{home}}/bin"
-conf_dir: "{{home}}/conf"
-exec: "{{bin_dir}}/clash"
 user: "rocketmq"
 group: "rocketmq"
 
+# memory
+broker_Xms: 2g
+broker_Xmx: 2g
+broker_MaxDirectMemorySize: 2G
+
+namesrv_Xms: 512m
+namesrv_Xmx: 512m
+namesrv_Xmn: 512m
+
+
 # install openjdk 11
-openjdk11_install: true
+openjdk11_install: false
 java_home: /usr/lib/jvm/java-11-openjdk-amd64
+java_opt: ""
+# broker.conf
+brokerClusterName: DefaultCluster
+brokerName: "broker-a"
+# -1 master
+brokerId: -1
+# 指定当前broker为异步复制master,
+# - ASYNC_MASTER 异步复制Master 
+# - SYNC_MASTER 同步双写Master 
+# - SLAVE 从
+brokerRole: ASYNC_MASTER
+# 指定刷盘策略为异步刷盘
+# - ASYNC_FLUSH 异步刷盘 
+# - SYNC_FLUSH 同步刷盘
+flushDiskType: ASYNC_FLUSH

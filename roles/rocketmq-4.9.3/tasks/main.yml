@@ -11,3 +11,9 @@
 - name: install
   when: not uninstall
   include_tasks: "{{role_path}}/tasks/install.yml"
+- name: install console
+  when: console_enabled
+  include_tasks: "{{role_path}}/tasks/install_console.yml"
+- name: install exporter
+  when: exporter_enabled
+  include_tasks: "{{role_path}}/tasks/install_exporter.yml"  

@@ -1,0 +1,14 @@
+[Unit]
+Description=rocketmq exporter service
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile={{home}}/conf/.env
+PassEnvironment=JAVA_HOME PATH
+WorkingDirectory={{exporter_home}}
+ExecStart={{java_home}}/bin/java -server -Xms{{exporter_Xms}} -Xmx{{exporter_Xmx}} -Xmn{{exporter_Xmn}} -Dendpoints.env.enabled=false -jar rocketmq-exporter-0.0.2-SNAPSHOT-exec.jar --server.port={{exporter_server_port}} --rocketmq.config.namesrvAddr={% for namesrvAddr in namesrvAddrs %}{{namesrvAddr}}{% if not loop.last %};{% endif %}{% endfor +%}
+Restart=always
+RestartSec=5s
+[Install]
+WantedBy=multi-user.target

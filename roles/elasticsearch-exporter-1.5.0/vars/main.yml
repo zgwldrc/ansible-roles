@@ -1,0 +1,17 @@
+---
+# vars file for elasticsearch-exporter
+USER: app_user
+GROUP: app_group
+VERSION: 1.5.0
+HOME: /data/elasticsearch-exporter/1.5.0
+EXEC: /data/elasticsearch-exporter/1.5.0/elasticsearch_exporter
+
+S3_URL: s3://bknew-repository/softwares/exporter/elasticsearch_exporter-1.5.0.linux-amd64.tar.gz
+UNARCHIVE_DIR: elasticsearch_exporter-1.5.0.linux-amd64
+DOWNLOAD_DEST: /tmp/elasticsearch_exporter-1.5.0.linux-amd64.tar.gz
+SYSTEMD_NAME: elasticsearch-exporter
+SYSTEMD_UNIT: /usr/lib/systemd/system/elasticsearch-exporter.service
+
+# used for ealstic auth
+EXPORTER_USER: elastic
+EXPORTER_PASSWD: secret

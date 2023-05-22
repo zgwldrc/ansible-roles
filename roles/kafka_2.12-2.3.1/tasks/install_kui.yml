@@ -1,0 +1,101 @@
+- name: user create
+  user:
+    name: "{{user}}"
+    state: present
+
+- name: group create
+  group:
+    name: "{{group}}"
+    state: present
+
+- name: ensure home and relavtive dirs created
+  file:
+    path: "{{item}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop:
+    - "{{kui_home}}"
+
+- name: check if downloaded
+  stat:
+    path: "{{kui_download_dest}}"
+  register: kui_downloaded
+
+- name: "Download"
+  when: not kui_downloaded.stat.exists
+  block:
+  - name: download from ansible control node
+    when: 
+    - install_from_files
+    copy:
+      src: "{{kui_archive_file}}"
+      dest: "{{kui_download_dest}}"
+
+  - name: download from s3_url
+    when: 
+    - kui_s3_url
+    - not install_from_files
+    shell: |
+      aws s3 cp {{kui_s3_url}} {{kui_download_dest}}
+  - name: download from urlpath
+    when:
+    - not kui_s3_url
+    - not install_from_files
+    get_url:
+      url: "{{kui_urlpath}}"
+      dest: "{{kui_download_dest}}"
+
+- name: kui systemd unit
+  template:
+    src: kui.service
+    dest: "/usr/lib/systemd/system/{{kui_systemd_name}}.service"
+    
+- name: kui config.yaml
+  template:
+    src: kui.yaml
+    dest: "{{kui_home}}/config.yaml"
+
+- name: add service control shortcuts commands
+  blockinfile:
+    path: "/home/{{user}}/.bashrc"
+    marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      alias {{item}}status='sudo systemctl status {{item}}.service'
+      alias {{item}}start='sudo systemctl start {{item}}.service'
+      alias {{item}}stop='sudo systemctl stop {{item}}.service'
+      alias {{item}}restart='sudo systemctl restart {{item}}.service'
+      alias {{item}}log='journalctl -u {{item}}.service -f -n 200 -o cat'
+    create: true
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop:
+    - "{{kui_systemd_name}}"
+
+- name: add suduers file
+  blockinfile:
+    path: "/etc/sudoers.d/{{user}}"
+    create: true
+    marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl start {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl stop {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{item}}.service
+  loop:
+    - "{{kui_systemd_name}}"   
+
+- name: ensure home dir owner and group
+  file:
+    path: "{{kui_home}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+    recurse: yes
+
+- name: "Enable console service"
+  systemd:
+    name: "{{kui_systemd_name}}"
+    enabled: yes
+    state: started
+    daemon_reload: true

@@ -1,0 +1,10 @@
+---
+# handlers file for clash-u2210
+- name: restart kafka service
+  systemd:
+    name: "kafka"
+    state: restarted
+- name: restart zookeeper service
+  systemd:
+    name: "zookeeper"
+    state: restarted    

@@ -1,0 +1,12 @@
+[Unit]
+Description={{SYSTEMD_NAME}}
+After=network.target
+
+[Service]
+Type=simple
+User={{USER}}
+Group={{GROUP}}
+ExecStart={{EXEC}} --es.uri=http://{{EXPORTER_USER}}:{{EXPORTER_PASSWD}}@{{ansible_default_ipv4.address}}:9200 --web.listen-address={{ansible_default_ipv4.address}}:9114 --es.all
+
+[Install]
+WantedBy=multi-user.target

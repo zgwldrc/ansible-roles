@@ -1,0 +1,151 @@
+---
+- name: user create
+  user:
+    name: "{{user}}"
+    state: present
+- name: group create
+  group:
+    name: "{{group}}"
+    state: present
+
+- name: ensure home and relavtive dirs created
+  file:
+    path: "{{item}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop:
+    - "{{home}}/data"
+
+- name: check if downloaded
+  stat:
+    path: "{{download_dest}}"
+  register: downloaded
+
+- name: "Download"
+  when: not downloaded.stat.exists
+  block:
+  - name: download from ansible control node
+    when: 
+    - install_from_files
+    copy:
+      src: "{{archive_file}}"
+      dest: "{{download_dest}}"
+
+  - name: download from s3_url
+    when: 
+    - s3_url
+    - not install_from_files
+    shell: |
+      aws s3 cp {{s3_url}} {{download_dest}}
+  - name: download from urlpath
+    when:
+    - not s3_url
+    - not install_from_files
+    get_url:
+      url: "{{urlpath}}"
+      dest: "{{download_dest}}"
+
+
+- name: check if deployed already
+  stat:
+    path: "{{home}}/bin/zkServer.sh"
+  register: zkServer
+
+- name: deploy files
+  when: not zkServer.stat.exists
+  block:
+  - name: create temp dir
+    tempfile:
+      state: directory
+    register: r_tempdir
+
+  - name: unarchive
+    unarchive:
+      src: "{{download_dest}}"
+      dest: "{{r_tempdir.path}}"
+      remote_src: yes
+
+  - name: sync to home dir
+    synchronize:
+      src: "{{r_tempdir.path}}/apache-zookeeper-{{version}}-bin/"
+      dest: "{{home}}/"
+    delegate_to: "{{ inventory_hostname }}"
+
+  - name: clean temp dir
+    when: r_tempdir is defined
+    file: 
+      path: "{{r_tempdir.path}}"
+      state: absent
+
+- name: Set config
+  template:
+    src: "{{item}}"
+    dest: "{{home}}/conf/{{item}}"
+  loop:
+  - "zoo.cfg"
+  notify:
+  - restart
+
+- name: Set myid
+  template:
+    src: "myid"
+    dest: "{{home}}/data/myid"
+  notify:
+  - restart
+- name: envFile
+  template:
+    src: env
+    dest: "{{home}}/conf/java.env"
+  notify:
+  - restart
+- name: systemd unit
+  template:
+    src: zk.unit
+    dest: "/usr/lib/systemd/system/{{systemd_name}}.service"
+
+- name: add service control shortcuts commands
+  blockinfile:
+    path: "/home/{{user}}/.bashrc"
+    marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      alias {{item}}status='sudo systemctl status {{item}}.service'
+      alias {{item}}start='sudo systemctl start {{item}}.service'
+      alias {{item}}stop='sudo systemctl stop {{item}}.service'
+      alias {{item}}restart='sudo systemctl restart {{item}}.service'
+      alias {{item}}log='journalctl -u {{item}}.service -f -n 200 -o cat'
+    create: true
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop:
+    - "{{systemd_name}}"
+
+- name: add suduers file
+  blockinfile:
+    path: "/etc/sudoers.d/{{user}}"
+    create: true
+    marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl start {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl stop {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{item}}.service
+  loop:
+    - "{{systemd_name}}"
+
+- name: ensure home dir owner and group
+  file:
+    path: "{{home}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+    recurse: yes
+
+- name: "Enable service"
+  systemd:
+    name: "{{systemd_name}}"
+    enabled: yes
+    state: started
+    daemon_reload: true
+
+

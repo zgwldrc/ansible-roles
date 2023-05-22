@@ -80,7 +80,7 @@
       state: absent
 
 
-- name: Set log config
+- name: Set config
   template:
     src: "{{item}}"
     dest: "{{home}}/conf/{{item}}"
@@ -88,7 +88,17 @@
   - "logback_broker.xml"
   - "logback_namesrv.xml"
   - "logback_tools.xml"
+  - "broker.conf"
 
+- name: set run scripts
+  template:
+    src: "{{item}}"
+    dest: "{{home}}/bin/{{item}}"
+    mode: 0755
+  loop:
+  - runserver.sh
+  - runbroker.sh
+  
 - name: envFile
   template:
     src: env
@@ -97,8 +107,45 @@
 - name: broker systemd unit
   template:
     src: broker.unit
-    dest: ""
-  
+    dest: "/usr/lib/systemd/system/{{systemd_name}}.service"
+
+- name: namesrv systemd unit
+  when: namesrv_enabled
+  template:
+    src: namesrv.unit
+    dest: "/usr/lib/systemd/system/{{namesrv_systemd_name}}.service"
+
+- name: add service control shortcuts commands
+  blockinfile:
+    path: "/home/{{user}}/.bashrc"
+    marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      alias {{item}}status='sudo systemctl status {{item}}.service'
+      alias {{item}}start='sudo systemctl start {{item}}.service'
+      alias {{item}}stop='sudo systemctl stop {{item}}.service'
+      alias {{item}}restart='sudo systemctl restart {{item}}.service'
+      alias {{item}}log='journalctl -u {{item}}.service -f -n 200 -o cat'
+    create: true
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop:
+    - "{{systemd_name}}"
+    - "{{namesrv_systemd_name}}"
+
+- name: add suduers file
+  blockinfile:
+    path: "/etc/sudoers.d/{{user}}"
+    create: true
+    marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl start {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl stop {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{item}}.service
+  loop:
+    - "{{systemd_name}}"
+    - "{{namesrv_systemd_name}}"
+
 - name: ensure home dir owner and group
   file:
     path: "{{home}}"
@@ -106,3 +153,18 @@
     owner: "{{user}}"
     group: "{{group}}"
     recurse: yes
+
+- name: "Enable broker service"
+  systemd:
+    name: "{{systemd_name}}"
+    enabled: yes
+    state: started
+
+- name: "Enable namesrv service"
+  when: namesrv_enabled
+  systemd:
+    name: "{{namesrv_systemd_name}}"
+    enabled: yes
+    state: started
+    daemon_reload: true
+

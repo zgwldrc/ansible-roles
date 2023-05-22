@@ -1,0 +1,17 @@
+[Unit]
+Description="kafka-ui {{kui_version}}"
+Documentation=""
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+EnvironmentFile=-{{home}}/.env
+User={{user}}
+Group={{group}}
+WorkingDirectory={{kui_home}}
+ExecStart={{java_home}}/bin/java -Dspring.config.additional-location={{kui_home}}/config.yaml -jar {{kui_download_dest}} --server.port={{kui_server_port}}
+Restart=on-failure
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

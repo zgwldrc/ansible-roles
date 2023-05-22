@@ -1,0 +1,9 @@
+kafka:
+  clusters:
+    - name: {{kui_cluster_name}}
+      bootstrapServers: "{{kui_bootstrapServers}}"
+      {%- if kui_metrics_port and kui_metrics_type +%}
+      metrics:
+        port: {{kui_metrics_port}}
+        type: {{kui_metrics_type}}
+      {%- endif +%}

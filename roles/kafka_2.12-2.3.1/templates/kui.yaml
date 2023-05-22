@@ -1,0 +1,7 @@
+kafka:
+  clusters:
+    - name: {{kui_cluster_name}}
+      bootstrapServers: "{% for host in ansible_play_hosts %}{{hostvars[host]['ansible_default_ipv4']['address']}}:9092{% if not loop.last %},{% endif %}{% endfor +%}"
+      metrics:
+        port: {{kui_metrics_port}}
+        type: {{kui_metrics_type}}

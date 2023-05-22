@@ -1,0 +1,10 @@
+- name: add suduers file
+  blockinfile:
+    path: "/etc/sudoers.d/{{user}}"
+    create: true
+    marker: "# {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl start {{systemd_name}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl stop {{systemd_name}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{systemd_name}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{systemd_name}}.service

@@ -1,0 +1,21 @@
+- name: test filebeat6
+  stat:
+    path: /usr/lib/systemd/system/filebeat.service
+  register: f6unit
+
+- name: stop filebeat6
+  when: f6unit.stat.exists
+  block:
+  - name: systemd stop filebeat6
+    systemd:
+      name: filebeat
+      state: stopped
+  - name: remove fb6 unit
+    file:
+      path: /usr/lib/systemd/system/filebeat.service
+      state: absent
+  - name: systemd daemon reload
+    systemd:
+      daemon_reload: true
+      
+  

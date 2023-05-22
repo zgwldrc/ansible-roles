@@ -1,0 +1,5 @@
+---
+- name: remove
+  file:
+    path: "{{home}}"
+    state: absent

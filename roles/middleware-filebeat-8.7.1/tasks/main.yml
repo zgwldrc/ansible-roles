@@ -1,0 +1,11 @@
+---
+# tasks file for filebeat-8.7.1
+- name: uninstall
+  when: uninstall
+  include_tasks: "{{role_path}}/tasks/uninstall.yml"
+- name: remove filebeat6
+  when: filebeat6_installed
+  include_tasks: "{{role_path}}/tasks/remove_filebeat6.yml"
+- name: install
+  when: not uninstall
+  include_tasks: "{{role_path}}/tasks/install.yml"

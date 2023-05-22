@@ -1,0 +1,5 @@
+ZK_SERVER_HEAP={{ZK_SERVER_HEAP}}
+ZK_CLIENT_HEAP={{ZK_CLIENT_HEAP}}
+JAVA_HOME={{java_home}}
+PATH={{java_home}}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+JAVA_OPT={{java_opt}}

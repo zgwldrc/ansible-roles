@@ -1,0 +1,130 @@
+---
+- name: "ensure {{SYSTEMD_NAME}} home dir exists"
+  ansible.builtin.file:
+    path: "{{HOME}}"
+    state: directory
+    mode: '0755'
+    owner: "{{USER}}"
+    group: "{{GROUP}}"
+
+- name: "Check if {{DOWNLOAD_DEST}} already exists"
+  stat:
+    path: "{{DOWNLOAD_DEST}}"
+  register: file_status
+
+- name: Get {{SYSTEMD_NAME}} from S3
+  when: not file_status.stat.exists
+  shell: "aws s3 cp {{S3_URL}} {{DOWNLOAD_DEST}}"
+
+- name: "Check if {{EXEC}} already installed"
+  stat:
+    path: "{{EXEC}}"
+  register: bin
+
+- name: unarchive {{SYSTEMD_NAME}} package to home
+  when: not bin.stat.exists
+  block:
+    - name: Create temporary directory
+      tempfile:
+        state: directory
+      register: temp_dir
+
+    - name:  unzip {{SYSTEMD_NAME}} to temp_dir
+      ansible.builtin.unarchive:
+        src: "{{DOWNLOAD_DEST}}"
+        dest: "{{temp_dir.path}}"
+        remote_src: yes
+
+    - name: Sync fresh {{SYSTEMD_NAME}} to home dir
+      synchronize:
+        src: "{{temp_dir.path}}/{{UNARCHIVE_DIR}}/"
+        dest: "{{HOME}}/"
+        recursive: yes
+      delegate_to: "{{ inventory_hostname }}"
+    
+- name: unit
+  template:
+    src: unit
+    dest: "{{SYSTEMD_UNIT}}"
+    owner: "{{USER}}"
+    group: "{{GROUP}}"
+    mode: 0644
+
+- name: "ensure {{SYSTEMD_NAME}} home dir owner"
+  ansible.builtin.file:
+    path: "{{HOME}}"
+    state: directory
+    recurse: yes
+    mode: '0755'
+    owner: "{{USER}}"
+    group: "{{GROUP}}"
+
+- name: "ensure {{SYSTEMD_NAME}} exe has right filemod"
+  ansible.builtin.file:
+    path: "{{EXEC}}"
+    state: file
+    mode: '0755'
+    owner: "{{USER}}"
+    group: "{{GROUP}}"
+
+- name: Add sudo start rule
+  lineinfile:
+    dest: /etc/sudoers
+    insertafter: EOF
+    line: '{{USER}} ALL=(ALL) NOPASSWD: /usr/bin/systemctl start {{SYSTEMD_NAME}}'
+    validate: '/usr/sbin/visudo -cf %s'
+    state: present
+    backup: yes
+
+- name: Add sudo stop rule
+  lineinfile:
+    dest: /etc/sudoers
+    insertafter: EOF
+    line: '{{USER}} ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop {{SYSTEMD_NAME}}'
+    validate: '/usr/sbin/visudo -cf %s'
+    state: present
+    backup: yes
+
+- name: Add sudo restart rule
+  lineinfile:
+    dest: /etc/sudoers
+    insertafter: EOF
+    line: '{{USER}} ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart {{SYSTEMD_NAME}}'
+    validate: '/usr/sbin/visudo -cf %s'
+    state: present
+    backup: yes
+
+- name: alias for service start
+  lineinfile:
+    dest: "/home/{{USER}}/.bash_profile"
+    insertafter: EOF
+    line: "alias eptstart='sudo /usr/bin/systemctl start {{SYSTEMD_NAME}}'"
+    state: present
+
+- name: alias for service stop
+  lineinfile:
+    dest: "/home/{{USER}}/.bash_profile"
+    insertafter: EOF
+    line: "alias eptstop='sudo /usr/bin/systemctl stop {{SYSTEMD_NAME}}'"
+    state: present
+
+- name: alias for service restart
+  lineinfile:
+    dest: "/home/{{USER}}/.bash_profile"
+    insertafter: EOF
+    line: "alias eptrestart='sudo /usr/bin/systemctl restart {{SYSTEMD_NAME}}'"
+    state: present
+
+- name: alias for service status
+  lineinfile:
+    dest: "/home/{{USER}}/.bash_profile"
+    insertafter: EOF
+    line: "alias eptstatus='/usr/bin/systemctl status {{SYSTEMD_NAME}}'"
+    state: present
+
+- name: Enable service
+  systemd:
+    name: "{{SYSTEMD_NAME}}"
+    state: started
+    enabled: yes
+    

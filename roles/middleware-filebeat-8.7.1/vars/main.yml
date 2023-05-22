@@ -1,0 +1,36 @@
+---
+# vars file for filebeat-8.7.1
+systemd_name: filebeat
+# if install_from set to localfile, will use file under files directory in role
+# if install_from set to url, will use file provided by urlpath
+install_from: localfile
+uninstall: false
+version: 8.7.1
+archive_file: "filebeat-{{version}}-linux-x86_64.tar.gz"
+urlpath: "https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-{{version}}-linux-x86_64.tar.gz"
+download_dest: "/tmp/{{archive_file}}"
+home: "/data/{{systemd_name}}/{{version}}"
+bin_dir: "{{home}}"
+conf_dir: "{{home}}"
+data_dir: "{{home}}/data"
+logs_dir: "{{home}}/logs"
+conf_file: "{{conf_dir}}/filebeat.yml"
+exec: "{{bin_dir}}/{{systemd_name}}"
+# if exec_link is true , exec will be linked to exec_link_path
+exec_link: true
+exec_link_path: "/usr/bin/{{systemd_name}}"
+user: "java_app"
+group: "appgroup"
+start_service: false
+# if filebeat6 installed true, will remove filebeat6 service unit then install filebeat8
+filebeat6_installed: false
+
+mid_type: "rocketmq"
+mid_version: "5.1.0"
+mid_cluster_name: "default_cluster"
+# kafka topic name
+log_source: "upex-middleware"
+# app config
+paths:
+  - /data/rocketmq/logs/rocketmqlogs/*.log
+kafka_hosts: ["172.30.161.214:9092","172.30.162.121:9092","172.30.161.40:9092"]

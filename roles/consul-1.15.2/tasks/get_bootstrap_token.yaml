@@ -32,14 +32,14 @@
       - "acl-policy-server-node.hcl"
   - name: "apply policy to consul server"
     shell: |      
-      p1=$(consul acl policy list -token "{{SecretID.stdout}}" -format=json | jq -r '.[] | select(.Name == "acl-policy-dns").Name')
+      p1=$(consul acl policy list -format=json | jq -r '.[] | select(.Name == "acl-policy-dns").Name')
       if [[ "$p1" != "acl-policy-dns"  ]];then
-        consul acl policy create -token "{{SecretID.stdout}}" -name 'acl-policy-dns' -description 'Policy for DNS endpoints' -rules @./acl-policy-dns.hcl
+        consul acl policy create -name 'acl-policy-dns' -description 'Policy for DNS endpoints' -rules @./acl-policy-dns.hcl
       fi
 
-      p2=$(consul acl policy list -token "{{SecretID.stdout}}" -format=json | jq -r '.[] | select(.Name == "acl-policy-server-node").Name')
+      p2=$(consul acl policy list -format=json | jq -r '.[] | select(.Name == "acl-policy-server-node").Name')
       if [[ "$p2" != "acl-policy-server-node"  ]];then
-        consul acl policy create -token "{{SecretID.stdout}}" -name 'acl-policy-server-node' -description 'Policy for Server nodes' -rules @./acl-policy-server-node.hcl
+        consul acl policy create -name 'acl-policy-server-node' -description 'Policy for Server nodes' -rules @./acl-policy-server-node.hcl
       fi
     args:
       chdir: "{{CONSUL_POLICY_DIR}}"

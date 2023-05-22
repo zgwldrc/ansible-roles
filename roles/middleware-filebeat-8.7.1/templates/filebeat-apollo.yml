@@ -1,0 +1,63 @@
+filebeat.inputs:
+- type: filestream
+  id: middleware-filestream
+  enabled: true
+  paths:
+    {%- for p in paths +%}
+  - {{ p }}
+    {%- endfor +%}
+  parsers:
+  - multiline:
+      type: pattern
+      pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
+      negate: true
+      match: after
+filebeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enabled: false
+setup.template.settings:
+  index.number_of_shards: 1
+setup.kibana:
+processors:
+  - dissect:
+      tokenizer: "%{date} %{time} %{level} %{rem}"
+  - script:
+      lang: javascript
+      source: |
+        function process(event) {
+          var date = event.Get('dissect.date')
+          var time = event.Get('dissect.time')
+          var datetime_str = date + ' ' + time
+          event.Put('datetime_str', datetime_str)
+          event.Rename('dissect.level', 'level')
+          event.Delete('dissect')
+          return event
+        }
+  - timestamp:
+      field: datetime_str
+      timezone: "+0800"
+      layouts:
+        - '2006-01-02 15:04:05.000'
+  - drop_fields:
+      fields: ['datetime_str']
+  - add_fields:
+      target: ""
+      fields:
+        type: {{mid_type}}
+        version: {{mid_version}}
+        cluster_name: {{mid_cluster_name}}
+        host_name: {{inventory_hostname}}
+  - add_fields:
+      fields:
+        log_source: "{{log_source}}"
+output.kafka:
+  enabled: true
+  worker: 2
+  hosts: [{% for h in kafka_hosts %}"{{h}}"{% if not loop.last %},{% endif %}{% endfor %}]
+  topic:  "{{log_source}}"
+  required_acks: 1
+  compression: gzip
+  max_message_bytes: 1000000
+
+logging.metrics.enabled: false
+

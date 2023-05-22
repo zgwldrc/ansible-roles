@@ -1,0 +1,6 @@
+---
+# handlers file for filebeat-8.7.1
+- name: restart service
+  systemd:
+    name: "{{systemd_name}}"
+    state: restarted
