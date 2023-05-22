@@ -1,5 +1,0 @@
-consul_servers:
-  hosts:
-    s1:
-    s2:
-    s3:
