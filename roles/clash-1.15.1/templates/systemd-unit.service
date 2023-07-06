@@ -3,13 +3,13 @@ Description="A rule-based tunnel in Go."
 Documentation=https://github.com/Dreamacro/clash
 Requires=network-online.target
 After=network-online.target
-# ConditionFileNotEmpty=/etc/consul.d/consul.hcl
 
 [Service]
 EnvironmentFile=-{{home}}/.env
 User={{user}}
 Group={{group}}
 ExecStart={{exec}} -d {{conf_dir}}
+ExecStartPost="{{home}}/execstart_post.sh"
 ExecReload=/bin/kill --signal HUP $MAINPID
 KillMode=process
 KillSignal=SIGTERM

@@ -85,32 +85,22 @@
     mode: 0755
 
 - name: config file render
+  tags: ["config"]
   template:
     src: "{{item}}"
     dest: "{{conf_dir}}/{{item}}"
   loop:
     - config.yaml
+  notify:
+  - restart service
 
 - name: create systemd unit file
   template:
     src: "systemd-unit.service"
     dest: "/etc/systemd/system/{{systemd_name}}.service"
 
-- name: add {{item}} shortcuts commands
-  blockinfile:
-    path: "/home/{{user}}/.bash_profile"
-    marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
-    block: |
-      alias {{item}}status='sudo /usr/bin/systemctl status {{item}}.service'
-      alias {{item}}start='sudo /usr/bin/systemctl start {{item}}.service'
-      alias {{item}}stop='sudo /usr/bin/systemctl stop {{item}}.service'
-      alias {{item}}restart='sudo /usr/bin/systemctl restart {{item}}.service'
-      alias {{item}}log='journalctl -u {{item}}.service -n 100 -f -o cat'
-    create: true
-  loop:
-    - "{{systemd_name}}"
-
 - name: add sudo rule file
+  tags: ["addsudorules"]
   include_tasks: "{{role_path}}/tasks/add_sudorules.yml"
 
 - name: Create a symbolic link
@@ -122,39 +112,21 @@
     group: "{{group}}"
     state: link
 
+- name: execstart_post.sh
+  tags: ["execstart_post"]
+  template:
+    src: execstart_post.sh
+    dest: "{{home}}/execstart_post.sh"
+    owner: "{{user}}"
+    group: "{{group}}"
+    mode: 0755
+
 - name: "start and enable {{systemd_name}} systemd service"
   systemd:
     name: "{{systemd_name}}"
     state: started
     enabled: true
     daemon_reload: true
-
-- name: merge original config into provider config
-  when: cfg_subscribes | length > 0
-  shell: |
-    provider_cfg="{{conf_dir}}/{{cfg_subscribes[0].name}}-subscribe.yaml"
-    merged_cfg="{{conf_dir}}/{{cfg_subscribes[0].name}}-subscribe-merged.yaml"
-    local_cfg="{{conf_dir}}/config.yaml"
-    
-    if [[ -s "$provider_cfg" && -s "$local_cfg" ]];then
-      yq ea 'select(fileIndex == 0) * select(fileIndex == 1)' "$provider_cfg" "$local_cfg" > "$merged_cfg"
-    fi
-    
-  args:
-    executable: /bin/bash
-- name: load proxy provider config
-  when: cfg_subscribes | length > 0
-  shell:
-    cmd: |
-      secret="{{secret}}"
-      config="{{conf_dir}}/{{cfg_subscribes[0].name}}-subscribe-merged.yaml"
-      if [[ ! -z "$secret" && -s "$config" ]];then
-        curl -s -XPUT "http://{{external_controller}}/configs" -H 'Authorization: Bearer {{secret}}' -d '{"path":"'$config'"}'
-      else
-        curl -s -XPUT "http://{{external_controller}}/configs" -d '{"path":"'$config'"}'
-      fi
-  args:
-    executable: /bin/bash
 
 - name: ensure home dir owner and group
   file:

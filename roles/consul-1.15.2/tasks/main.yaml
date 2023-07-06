@@ -7,7 +7,9 @@
   include_tasks: "{{role_path}}/tasks/install.yaml"
 
 - name: ca init
-  when: "'ca' in agent_role"
+  when: 
+    - "'ca' in agent_role"
+    - not uninstall
   include_tasks: "{{role_path}}/tasks/ca_init.yaml"
 
 

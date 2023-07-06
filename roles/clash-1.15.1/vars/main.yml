@@ -21,6 +21,7 @@ group: clash
 
 
 # app config
+allow_lan: false
 secret: ""
 cfg_subscribes: 
   - name: example

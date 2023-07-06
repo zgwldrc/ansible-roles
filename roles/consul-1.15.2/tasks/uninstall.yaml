@@ -14,7 +14,7 @@
   file:
     path: "/etc/systemd/system/{{item}}.service"
     state: absent
-  with_items:
+  loop:
     - "{{systemd_name}}"
 
 

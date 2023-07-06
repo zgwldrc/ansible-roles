@@ -1,6 +1,5 @@
 [Unit]
 Description="zk with kafka 2.3.1"
-Documentation=""
 Requires=network-online.target
 After=network-online.target
 

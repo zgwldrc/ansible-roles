@@ -1,2 +1,7 @@
 ---
 # handlers file for clash-dashboard
+- name: nginx reload
+  shell: |
+    nginx -t && nginx -s reload
+  args:
+    executable: /bin/bash

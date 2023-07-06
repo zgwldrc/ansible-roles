@@ -3,17 +3,6 @@
 - name: uninstall
   when: uninstall
   include_tasks: "{{role_path}}/tasks/uninstall.yml"
-- name: install openjdk 11
-  when: 
-  - not uninstall
-  - openjdk11_install
-  include_tasks: "{{role_path}}/tasks/openjdk_11.yml"
 - name: install
   when: not uninstall
   include_tasks: "{{role_path}}/tasks/install.yml"
-- name: install console
-  when: kui_enabled
-  include_tasks: "{{role_path}}/tasks/install_kui.yml"
-- name: install exporter
-  when: exporter_enabled
-  include_tasks: "{{role_path}}/tasks/install_exporter.yml"  

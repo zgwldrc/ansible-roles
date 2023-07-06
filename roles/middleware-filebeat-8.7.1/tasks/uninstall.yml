@@ -4,6 +4,7 @@
   systemd:
     name: "{{systemd_name}}"
     state: stopped
+  ignore_errors: true
 
 - name: remove home dir
   file:
@@ -17,7 +18,7 @@
 
 - name: add {{item}} shortcuts commands
   blockinfile:
-    path: "~/.bash_profile"
+    path: "/home/{{user}}/.bash_profile"
     marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
     block: |
       alias {{item}}status='systemctl status {{item}}.service'

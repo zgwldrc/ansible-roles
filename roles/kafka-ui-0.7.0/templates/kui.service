@@ -1,6 +1,5 @@
 [Unit]
 Description="kafka-ui {{kui_version}}"
-Documentation=""
 Requires=network-online.target
 After=network-online.target
 

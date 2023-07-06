@@ -1,13 +1,28 @@
 ---
 - name: ensure nginx installed
   apt:
-    name: nginx
+    pkg: 
+     - nginx
+     - apache2-utils
 
+- name: create htpasswd file
+  tags: ["createpassword"]
+  shell: |
+    htpasswd -b -c /etc/nginx/.htpasswd {{basic_auth_user}} {{basic_auth_password}}
+  args:
+    executable: /bin/bash
+    
+- name: Find my public ip
+  uri: 
+    url: http://ifconfig.me/ip
+    return_content: yes
+  register: ip_response 
 - name: nginx vh config
   template:
     src: clash_dashboard.conf
     dest: /etc/nginx/sites-available/clash_dashboard.conf
-    
+  notify:
+  - nginx reload
 - name: nginx vh config symlink
   file:
     state: link
@@ -19,8 +34,13 @@
     path: "{{root}}"
     state: directory
 
+- name: chk zip exists
+  stat:
+    path: /tmp/clash_dashboard.zip
+  register: zip_exists
 # tasks file for clash-dashboard
 - name: deploy dist.zip
+  when: not zip_exists.stat.exists
   block:
   - name: copy
     copy:

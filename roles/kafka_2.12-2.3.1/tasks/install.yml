@@ -82,6 +82,13 @@
 
 - name: "Config"
   block:
+  - name: hosts define
+    blockinfile:
+      path: /etc/hosts
+      marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item }}"
+      block: |
+        {{ hostvars[item]['ansible_default_ipv4']['address'] }} {{ item }}
+    loop: "{{ansible_play_hosts}}"
   - name: "Systemd unit file generate"
     template:
       src: "{{item}}"
@@ -105,9 +112,17 @@
     - restart zookeeper service
 
   - name: Set Zookeeper myid
-    template:
-      src: "myid"
-      dest: "{{zkDataDir}}/myid"
+    block:
+    - name: create datadir
+      file:
+        path: "{{zkDataDir}}"
+        state: directory
+        owner: "{{user}}"
+        group: "{{group}}"
+    - name: "Create myid file"
+      template:
+        src: "myid"
+        dest: "{{zkDataDir}}/myid"
       
   - name: Environement File
     template:
@@ -152,44 +167,22 @@
       - "kafka"
       - "zookeeper"
 
-  - name: export BS in bashrc
-    lineinfile:
+  - name: source bash_aliases_kafka
+    blockinfile:
       path: "/home/{{user}}/.bashrc"
-      line: |
+      marker: "# shortcuts for kafka cli {mark} ANSIBLE MANAGED BLOCK"
+      block: |
         export BS="{% for host in ansible_play_hosts %}{{hostvars[host]['ansible_default_ipv4']['address']}}:9092{% if not loop.last %},{% endif %}{% endfor +%}"
+        source /home/{{user}}/.bash_aliases_kafka.sh
       owner: "{{user}}"
       group: "{{group}}"
   - name: kafka shortcuts in bashrc
-    lineinfile:
-      path: "/home/{{user}}/.bashrc"
-      line: |
-        alias {{item}}="{{home}}/bin/{{item}}.sh --bootstrap-server $BS"
+    template:
+      src: "bash_aliases_kafka.j2"
+      dest: "/home/{{user}}/.bash_aliases_kafka.sh"
       owner: "{{user}}"
       group: "{{group}}"
-    loop:
-    - "kafka-acls"
-    - "kafka-broker-api-versions"
-    - "kafka-configs"
-    - "kafka-console-consumer"
-    - "kafka-console-producer"
-    - "kafka-consumer-groups"
-    - "kafka-consumer-perf-test"
-    - "kafka-delegation-tokens"
-    - "kafka-delete-records"
-    - "kafka-dump-log"
-    - "kafka-log-dirs"
-    - "kafka-mirror-maker"
-    - "kafka-preferred-replica-election"
-    - "kafka-producer-perf-test"
-    - "kafka-reassign-partitions"
-    - "kafka-replica-verification"
-    - "kafka-run-class"
-    - "kafka-server-start"
-    - "kafka-server-stop"
-    - "kafka-streams-application-reset"
-    - "kafka-topics"
-    - "kafka-verifiable-consumer"
-    - "kafka-verifiable-producer"
+
   - name: add suduers file
     blockinfile:
       path: "/etc/sudoers.d/{{user}}"

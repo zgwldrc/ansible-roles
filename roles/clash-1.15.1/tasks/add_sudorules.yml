@@ -1,10 +1,34 @@
+- name: get systemctl path
+  tags: ["addsudorules"]
+  shell: |
+    which systemctl 
+  args: 
+    executable: /bin/bash
+  register: systemctl_path
+
 - name: add suduers file
+  tags: ["addsudorules"]
   blockinfile:
     path: "/etc/sudoers.d/{{user}}"
     create: true
     marker: "# {mark} ANSIBLE MANAGED BLOCK"
     block: |
-      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl start {{systemd_name}}.service
-      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl stop {{systemd_name}}.service
-      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{systemd_name}}.service
-      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{systemd_name}}.service
+      {{user}} ALL=(root) NOPASSWD: {{systemctl_path.stdout}} start {{systemd_name}}.service
+      {{user}} ALL=(root) NOPASSWD: {{systemctl_path.stdout}} stop {{systemd_name}}.service
+      {{user}} ALL=(root) NOPASSWD: {{systemctl_path.stdout}} restart {{systemd_name}}.service
+      {{user}} ALL=(root) NOPASSWD: {{systemctl_path.stdout}} status {{systemd_name}}.service
+
+- name: add {{item}} shortcuts commands
+  tags: ["addsudorules"]
+  blockinfile:
+    path: "/home/{{user}}/.bashrc"
+    marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      alias {{item}}status='sudo {{systemctl_path.stdout}} status {{item}}.service'
+      alias {{item}}start='sudo {{systemctl_path.stdout}} start {{item}}.service'
+      alias {{item}}stop='sudo {{systemctl_path.stdout}} stop {{item}}.service'
+      alias {{item}}restart='sudo {{systemctl_path.stdout}} restart {{item}}.service'
+      alias {{item}}log='journalctl -u {{item}}.service -n 100 -f -o cat'
+    create: true
+  loop:
+    - "{{systemd_name}}"

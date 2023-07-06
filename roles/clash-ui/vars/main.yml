@@ -1,5 +1,7 @@
 ---
 # vars file for clash-dashboard
-_port: 80
-server_name: "clash-ui.service.consul"
 root: /var/www/clash_dashboard
+server_name: "_"
+_port: 7893
+basic_auth_user: admin
+basic_auth_password: admin
