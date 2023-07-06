@@ -15,4 +15,10 @@ roles/zookeeper-3.5.10/files
 roles/kafka_2.12-2.3.1/files
 roles/kafka-ui-0.7.0/files
 roles/openjdk-17.0.1_linux-x64/files
+<<<<<<< HEAD
 /arthur_clash.yml
+=======
+roles/*/files
+roles/**/files/*
+
+>>>>>>> b95b20e (init)

@@ -1,0 +1,58 @@
+- name: "Config"
+  block:
+  - name: "Systemd unit file generate"
+    template:
+      src: "{{item}}"
+      dest: "/etc/systemd/system/{{item}}"
+    loop:
+    - "zookeeper.service"
+
+  - name: Zookeeper Properties
+    template:
+      src: "zookeeper.properties"
+      dest: "{{home}}/config/zookeeper.properties"
+    notify:
+    - restart zookeeper service
+
+  - name: Set Zookeeper myid
+    template:
+      src: "myid"
+      dest: "{{zkDataDir}}/myid"
+      
+- name: Sudo Rules and Bashrc Alias
+  block:
+  - name: add service control shortcuts commands
+    blockinfile:
+      path: "/home/{{user}}/.bashrc"
+      marker: "# {{item}} svcctl {mark} ANSIBLE MANAGED BLOCK"
+      block: |
+        alias {{item}}status='sudo systemctl status {{item}}.service'
+        alias {{item}}start='sudo systemctl start {{item}}.service'
+        alias {{item}}stop='sudo systemctl stop {{item}}.service'
+        alias {{item}}restart='sudo systemctl restart {{item}}.service'
+        alias {{item}}log='journalctl -u {{item}}.service -f -n 200 -o cat'
+      create: true
+      owner: "{{user}}"
+      group: "{{group}}"
+    loop:
+      - "zookeeper"
+
+  - name: add sudoers file
+    blockinfile:
+      path: "/etc/sudoers.d/{{user}}"
+      create: true
+      marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+      block: |
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl start {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl stop {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{item}}.service
+    loop:
+      - "zookeeper"
+
+- name: zookeeper Service Start
+  systemd:
+    name: "zookeeper"
+    state: started
+    enabled: true
+    daemon_reload: true  

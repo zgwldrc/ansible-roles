@@ -1,5 +1,4 @@
 ---
-# tasks file for n9e-v6.0.0
 - name: stop service
   systemd:
     name: "{{systemd_name}}"
@@ -12,12 +11,16 @@
 
 - name: remove systemd unit file
   file:
-    path: "/etc/systemd/system/{{systemd_name}}.service"
+    path: "{{item}}/{{systemd_name}}.service"
     state: absent
+  loop:
+  - "/etc/systemd/system"
+  - "/lib/systemd/system"
+  - "/usr/lib/systemd/system"
 
-- name: add {{item}} shortcuts commands
+- name: remove {{item}} shortcuts commands
   blockinfile:
-    path: "{{user}}/.bashrc"
+    path: "/home/{{user}}/.bashrc"
     marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
     block: |
       alias {{item}}status='systemctl status {{item}}.service'

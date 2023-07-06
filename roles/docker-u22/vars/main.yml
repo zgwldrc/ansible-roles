@@ -1,0 +1,7 @@
+---
+# vars file for docker-u22
+proxies:
+  enabled: false
+  http_proxy: ""
+  https_proxy: ""
+  no_proxy: ""

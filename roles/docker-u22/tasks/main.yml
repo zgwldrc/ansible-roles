@@ -1,0 +1,64 @@
+---
+# tasks file for docker-u22
+- name: uninstall old versions
+  apt:
+    pkg:
+      - docker
+      - docker-engine
+      - docker.io
+      - containerd
+      - runc
+    state: absent
+
+- name: set up the repository
+  apt:
+    update_cache: yes
+    pkg:
+     - ca-certificates
+     - curl
+     - gnupg
+
+- name: keyring directory
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: 0755
+
+- name: add docker's official gpg key
+  shell: |
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  args:
+    creates: /etc/apt/keyrings/docker.gpg
+
+- name: add read to all for /etc/apt/keyrings/docker.gpg
+  file:
+    path: /etc/apt/keyrings/docker.gpg
+    mode: a+r
+  
+- name: set repository
+  shell: |
+    echo \
+    "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+    "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+    tee /etc/apt/sources.list.d/docker.list > /dev/null
+  args:
+    creates: /etc/apt/sources.list.d/docker.list
+
+- name: install docker packages 
+  apt:
+    update_cache: yes
+    pkg:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+
+- name: daemon.json
+  when: proxies.enabled
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+  notify:
+    - restart
+  

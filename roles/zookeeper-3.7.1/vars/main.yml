@@ -1,0 +1,34 @@
+---
+## Java relative
+# install openjdk 11
+openjdk11_install: false
+java_home: /usr/local/jkd11
+java_opt: ""
+
+uninstall: false
+install_from_files: true
+systemd_name: zookeeper
+version: 3.7.1
+# if install_from_files: true then copy zip package from files directory in role
+# and skip s3_url and urlpath
+s3_url: ""
+archive_file: "apache-zookeeper-{{version}}-bin.tar.gz"
+urlpath: "https://downloads.apache.org/zookeeper/zookeeper-{{version}}/{{archive_file}}"
+download_dest: "/tmp/apache-zookeeper-{{version}}-bin.tgz"
+home: "/data/zookeeper/{{version}}"
+
+user: "zookeeper"
+group: "zookeeper"
+
+# zookeeper
+# heap mem size in MegaByte
+ZK_SERVER_HEAP: 1000
+ZK_CLIENT_HEAP: 256
+_4lw_commands_whitelist: '*'
+
+
+
+
+
+
+

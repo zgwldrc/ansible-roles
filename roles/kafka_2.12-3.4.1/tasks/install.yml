@@ -1,0 +1,100 @@
+---
+- name: user create
+  user:
+    name: "{{user}}"
+    state: present
+
+- name: group create
+  group:
+    name: "{{group}}"
+    state: present
+
+- name: ensure home and relavtive dirs created
+  file:
+    path: "{{item}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop:
+    - "{{home}}"
+    - "{{zkDataDir}}"
+
+- name: Environement File
+  template:
+    src: env
+    dest: "{{home}}/.env"
+
+- name: check if downloaded
+  stat:
+    path: "{{download_dest}}"
+  register: downloaded
+
+- name: "Download"
+  when: not downloaded.stat.exists
+  block:
+  - name: download from ansible control node
+    when: 
+    - install_from_files
+    copy:
+      src: "{{archive_file}}"
+      dest: "{{download_dest}}"
+
+  - name: download from s3_url
+    when: 
+    - s3_url
+    - not install_from_files
+    shell: |
+      aws s3 cp {{s3_url}} {{download_dest}}
+  - name: download from urlpath
+    when:
+    - not s3_url
+    - not install_from_files
+    get_url:
+      url: "{{urlpath}}"
+      dest: "{{download_dest}}"
+
+- name: check if deployed already
+  stat:
+    path: "{{home}}/bin"
+  register: deployed
+
+- name: "Deploy"
+  when: not deployed.stat.exists
+  block:
+  - name: create temp dir
+    tempfile:
+      state: directory
+    register: r_tempdir
+
+  - name: unarchive
+    unarchive:
+      src: "{{download_dest}}"
+      dest: "{{r_tempdir.path}}"
+      remote_src: yes
+
+  - name: sync to home dir
+    synchronize:
+      src: "{{r_tempdir.path}}/kafka_{{scala_version}}-{{version}}/"
+      dest: "{{home}}/"
+    delegate_to: "{{ inventory_hostname }}"
+
+  - name: clean temp dir
+    when: r_tempdir is defined
+    file: 
+      path: "{{r_tempdir.path}}"
+      state: absent
+
+- name: install and start embeded zookeeper
+  when: useEmbededZk
+  include_tasks: "{{role_path}}/tasks/install_embeded_zk.yml"
+
+- name: install and start kafka
+  include_tasks: "{{role_path}}/tasks/install_kafka.yml"
+
+- name: ensure home dir owner and group
+  file:
+    path: "{{home}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+    recurse: yes

@@ -1,0 +1,42 @@
+---
+# tasks file for middleware-all-in-one-dc
+- name: directory creation
+  file:
+    path: "{{item.path}}"
+    state: directory
+    owner: "{{item.owner}}"
+    group: "{{item.group}}"
+  loop:
+    - {"path": "{{home}}/rocketmq/namesrv/logs", "owner": 3000, "group": 3000}
+    - {"path": "{{home}}/rocketmq/broker/logs", "owner": 3000, "group": 3000}
+    - {"path": "{{home}}/rocketmq/broker/store", "owner": 3000, "group": 3000}
+    - {"path": "{{home}}/zookeeper/data", "owner": 1001, "group": 1001}
+    - {"path": "{{home}}/kafka/data", "owner": 1001, "group": 1001}
+    - {"path": "{{home}}/elasticsearch/data", "owner": 1001, "group": 1001}
+    - {"path": "{{home}}/kafka-ui", "owner": 100, "group": 101}
+
+- name: docker-compose
+  template:
+    src: docker-compose.yml
+    dest: "{{home}}/docker-compose.yml"
+    owner: "{{user}}"
+    group: "{{group}}"
+
+- name: config files
+  template:
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
+    owner: "{{item.owner}}"
+    group: "{{item.group}}"
+  loop:
+    - {"src": "rocketmq/broker.conf", "dest": "{{home}}/rocketmq/broker/broker.conf", "owner": 3000, "group": 3000}
+    - {"src": "kafka-ui/config.yaml", "dest": "{{home}}/kafka-ui/config.yaml", "owner": 100, "group": 101}
+
+# for elasticsearch
+- name: set vm.max_map_count to 262144 in sysctl
+  sysctl: name={{ item.key }} value={{ item.value }}
+  loop:
+    - { key: "vm.max_map_count", value: "262144" }
+    
+  
+

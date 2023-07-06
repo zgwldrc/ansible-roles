@@ -1,0 +1,9 @@
+{
+{% if proxies.http_proxy or proxies.https_proxy or proxies.no_proxy %}
+  "proxies": {
+    "http-proxy": "{{proxies.http_proxy}}",
+    "https-proxy": "{{proxies.https_proxy}}",
+    "no-proxy": "{{proxies.no_proxy}}"
+  }
+{% endif %}
+}

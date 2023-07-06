@@ -1,0 +1,22 @@
+---
+# vars file for middleware-all-in-one-dc
+home: /data/midaio
+user: "999"
+group: "999"
+
+# rocketmq
+rmq_version: 4.9.3
+
+# zookeeper
+zk_version: 3.7.0
+# size in megabyte unit
+zk_heap_size: 512
+
+# kafka
+kaf_version: 2.8.1
+kaf_heap_size: "-Xmx2560m -Xms2560m"
+
+# elasticsearch
+es_version: 7.13.2
+es_heap_size: "2560m"
+

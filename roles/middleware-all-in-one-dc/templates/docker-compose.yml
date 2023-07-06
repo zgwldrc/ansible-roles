@@ -1,0 +1,91 @@
+services:
+  #Service for nameserver
+  rmq_namesrv:
+    image: apache/rocketmq:{{rmq_version}}
+    container_name: rmqnamesrv
+    ports:
+      - 9876:9876
+    volumes:
+      - ./rocketmq/namesrv/logs:/home/rocketmq/logs
+    command: sh mqnamesrv
+
+  # 3000 Service for broker
+  rmq_broker:
+    image: apache/rocketmq:{{rmq_version}}
+    container_name: rmqbroker
+    ports:
+      - 10909:10909
+      - 10911:10911
+      - 10912:10912
+    environment:
+      - NAMESRV_ADDR=rmq_namesrv:9876
+    volumes:
+      - ./rocketmq/broker/logs:/home/rocketmq/logs
+      - ./rocketmq/broker/store:/home/rocketmq/store
+      - ./rocketmq/broker/broker.conf:/opt/rocketmq-{{rmq_version}}/conf/broker.conf
+    command: sh mqbroker -c /opt/rocketmq-{{rmq_version}}/conf/broker.conf
+
+  rmq_console:
+    image: styletang/rocketmq-console-ng
+    container_name: rmqconsole
+    ports:
+      - 8080:8080
+    environment:
+      - JAVA_OPTS=-Drocketmq.namesrv.addr=rmq_namesrv:9876 -Dcom.rocketmq.sendMessageWithVIPChannel=false
+
+
+  # See: 1001
+  # https://hub.docker.com/r/bitnami/zookeeper
+  zookeeper:
+    image: "bitnami/zookeeper:{{zk_version}}"
+    container_name: "zookeeper"
+    ports:
+      - "2181:2181"
+    volumes:
+      - ./zookeeper/data:/bitnami/zookeeper
+      #- ./zookeeper/zoo.cfg:/opt/bitnami/zookeeper/conf/zoo.cfg
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+      - ZOO_HEAP_SIZE={{zk_heap_size}}
+
+  # See:
+  # https://hub.docker.com/r/bitnami/kafka
+  kafka:
+    image: bitnami/kafka:{{kaf_version}}
+    container_name: "kafka"
+    ports:
+      - "9092:9092"
+    volumes:
+      - ./kafka/data:/bitnami/kafka
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_HEAP_OPTS={{kaf_heap_size}}
+      - KAFKA_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://{{ansible_default_ipv4.address}}:9092
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zookeeper
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 9090:8080
+    environment:
+      DYNAMIC_CONFIG_ENABLED: "true"
+    volumes:
+      - ./kafka-ui/config.yaml:/etc/kafkaui/dynamic_config.yaml
+    depends_on:
+      - kafka
+  # https://hub.docker.com/r/bitnami/elasticsearch
+  elasticsearch:
+    image: 'bitnami/elasticsearch:{{es_version}}'
+    container_name: "elasticsearch"
+    ports:
+      - 9200:9200
+    volumes:
+      # - ./elasticsearch/elasticsearch.yml:/opt/bitnami/elasticsearch/config/elasticsearch.yml
+      - ./elasticsearch/data:/bitnami/elasticsearch/data
+    environment:
+      - ELASTICSEARCH_PORT_NUMBER=9200
+      - ELASTICSEARCH_HEAP_SIZE={{es_heap_size}}

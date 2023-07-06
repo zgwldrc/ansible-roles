@@ -1,0 +1,6 @@
+---
+# handlers file for docker-u22
+- name: restart
+  systemd:
+    name: docker
+    state: restarted

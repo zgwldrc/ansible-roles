@@ -1,20 +1,24 @@
 ---
+uninstall: false
 java_home: "/usr/local/jdk/17.0.1"
+install_from_files: false
 # kafka ui console
 kui_systemd_name: kui
 kui_version: 0.7.0
 kui_home: /data/kafka-ui/{{kui_version}}
+kui_user: "app_user"
+kui_group: "app_group"
 kui_archive_file: kafka-ui-api-v{{kui_version}}.jar
 kui_download_dest: "{{kui_home}}/{{kui_archive_file}}"
 kui_urlpath: "https://github.com/provectus/kafka-ui/releases/download/v{{kui_version}}/kafka-ui-api-v{{kui_version}}.jar"
-kui_s3_url: ""
+kui_s3_url: "s3://upex-repository/middleware/kafka/kafka-ui-api-v0.7.0.jar"
 kui_Xms: 256m
 kui_Xmx: 256m
 kui_Xmn: 256m
 kui_server_port: 8080
 # for template kui.yaml
 kui_cluster_name: "DefaultCluster"
+kui_bootstrapServers: "127.0.0.1:9092"
 kui_metrics_port: 0
 # Type of metrics, either JMX or PROMETHEUS. Defaulted to JMX.
 kui_metrics_type: ""
-kui_bootstrapServers: "127.0.0.1:9092"

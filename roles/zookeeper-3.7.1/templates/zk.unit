@@ -1,0 +1,12 @@
+[Unit]
+Description=zookeeper
+After=network.target
+
+[Service]
+Type=simple
+User={{user}}
+Group={{group}}
+ExecStart={{home}}/bin/zkServer.sh start-foreground
+
+[Install]
+WantedBy=multi-user.target
