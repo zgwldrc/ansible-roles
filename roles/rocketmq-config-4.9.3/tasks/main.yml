@@ -1,0 +1,7 @@
+
+- name: generate broker config file
+  template:
+    src: broker.conf
+    dest: "{{cfg_path}}"
+    owner: "{{user}}"
+    group: "{{group}}"

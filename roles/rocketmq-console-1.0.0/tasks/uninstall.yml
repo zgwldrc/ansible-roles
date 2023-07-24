@@ -1,0 +1,35 @@
+---
+# tasks file for n9e-v6.0.0
+- name: stop service
+  systemd:
+    name: "{{systemd_name}}"
+    state: stopped
+
+- name: remove home dir
+  file:
+    path: "{{home}}"
+    state: absent
+
+- name: remove systemd unit file
+  file:
+    path: "/etc/systemd/system/{{systemd_name}}.service"
+    state: absent
+
+- name: add {{item}} shortcuts commands
+  blockinfile:
+    path: "~/.bash_profile"
+    marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      alias {{item}}status='systemctl status {{item}}.service'
+      alias {{item}}start='systemctl start {{item}}.service'
+      alias {{item}}stop='systemctl stop {{item}}.service'
+      alias {{item}}restart='systemctl restart {{item}}.service'
+      alias {{item}}log='journalctl -u {{item}}.service -n 100 -f -o cat'
+    state: absent
+  loop:
+    - "{{systemd_name}}"
+
+- name: remove symbolic link
+  file:
+    path: "{{exec_link_path}}"
+    state: absent

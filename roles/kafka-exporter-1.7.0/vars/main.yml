@@ -1,0 +1,17 @@
+---
+systemd_name: kafka-exporter
+uninstall: false
+version: 1.7.0
+archive_file: "kafka_exporter-{{version}}.linux-amd64.tar.gz"
+download_dest: "/tmp/{{archive_file}}"
+home: "/data/{{systemd_name}}/{{version}}"
+exec_file: "{{home}}/kafka_exporter"
+# bk app user and group name
+user: "java_app"
+group: "appgroup"
+
+kafka_servers: 127.0.0.1:9092,127.0.0.2:9092,127.0.0.3:9092
+web_listen_address: 0.0.0.0:9102
+kafka_version: 2.0.0
+
+

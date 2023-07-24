@@ -1,0 +1,177 @@
+---
+# tasks file for rocketmq
+- name: ensure rocketmq home dir exists
+  ansible.builtin.file:
+    path: "{{ROCKETMQ_HOME}}"
+    state: directory
+    mode: '0755'
+    owner: "{{ROCKETMQ_USER}}"
+    group: "{{ROCKETMQ_GROUP}}"
+
+- name: Check if zipfile already exists
+  stat:
+    path: "{{DOWNLOAD_DEST}}"
+  register: file_status
+
+- name: Get zip package from S3
+  when: not file_status.stat.exists
+  shell: "aws s3 cp {{S3_URL}} {{DOWNLOAD_DEST}}"
+
+- name: Check if ROCKETMQ_HOME already installed
+  stat:
+    path: "{{ROCKETMQ_HOME}}/bin"
+  register: bin
+
+- name: unzip rocketmq package to home
+  when: not bin.stat.exists
+  block:
+    - name: Create temporary directory
+      tempfile:
+        state: directory
+      register: temp_dir
+
+    - name:  unzip rocketmq to temp_dir
+      ansible.builtin.unarchive:
+        src: "{{DOWNLOAD_DEST}}"
+        dest: "{{temp_dir.path}}"
+        remote_src: yes
+
+    - name: Sync fresh rocketmq to home dir
+      synchronize:
+        src: "{{temp_dir.path}}/{{UNZIP_DIR}}/"
+        dest: "{{ROCKETMQ_HOME}}/"
+        recursive: yes
+      delegate_to: "{{ inventory_hostname }}"
+    
+- name: broker.conf
+  template:
+    src: broker.conf
+    dest: "{{ROCKETMQ_HOME}}/conf/broker.conf"
+    mode: '0644'
+    owner: "{{ROCKETMQ_USER}}"
+    group: "{{ROCKETMQ_GROUP}}"
+
+- name: broker.unit
+  template:
+    src: broker.unit
+    dest: "/usr/lib/systemd/system/{{BROKER_SYSTEMD_NAME}}.service"
+    mode: '0644'
+    owner: "{{ROCKETMQ_USER}}"
+    group: "{{ROCKETMQ_GROUP}}"
+
+- name: "Enable {{BROKER_SYSTEMD_NAME}} service"
+  systemd:
+    name: "{{BROKER_SYSTEMD_NAME}}"
+    enabled: yes
+
+# Namesrv - Optional
+- name: namesrv config
+  when: NamesrvEnabled
+  block:
+  - name: namesrv.conf
+    template:
+      src: namesrv.conf
+      dest: "{{ROCKETMQ_HOME}}/conf/namesrv.conf"
+      mode: '0644'
+      owner: "{{ROCKETMQ_USER}}"
+      group: "{{ROCKETMQ_GROUP}}"
+
+  - name: namesrv.unit
+    template:
+      src: namesrv.unit
+      dest: "/usr/lib/systemd/system/{{NAMESRV_SYSTEMD_NAME}}.service"
+      mode: '0644'
+      owner: "{{ROCKETMQ_USER}}"
+      group: "{{ROCKETMQ_GROUP}}"
+
+  - name: "Enable {{NAMESRV_SYSTEMD_NAME}} service"
+    systemd:
+      name: "{{NAMESRV_SYSTEMD_NAME}}"
+      enabled: yes
+
+  - name: Add sudo start rule
+    lineinfile:
+      dest: /etc/sudoers
+      insertafter: EOF
+      line: '{{ROCKETMQ_USER}} ALL=(ALL) NOPASSWD: /usr/bin/systemctl start {{NAMESRV_SYSTEMD_NAME}}'
+      validate: '/usr/sbin/visudo -cf %s'
+      state: present
+      backup: yes
+
+  - name: Add sudo stop rule
+    lineinfile:
+      dest: /etc/sudoers
+      insertafter: EOF
+      line: '{{ROCKETMQ_USER}} ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop {{NAMESRV_SYSTEMD_NAME}}'
+      validate: '/usr/sbin/visudo -cf %s'
+      state: present
+      backup: yes
+
+  - name: Add sudo restart rule
+    lineinfile:
+      dest: /etc/sudoers
+      insertafter: EOF
+      line: '{{ROCKETMQ_USER}} ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart {{NAMESRV_SYSTEMD_NAME}}'
+      validate: '/usr/sbin/visudo -cf %s'
+      state: present
+      backup: yes
+
+- name: app user bash_profile
+  template:
+    src: bash_profile.tpl
+    dest: "/home/{{ROCKETMQ_USER}}/.bash_profile"
+    owner: "{{ROCKETMQ_USER}}"
+    group: "{{ROCKETMQ_GROUP}}"
+    mode: 0644
+
+- name: ensure rocketmq home dir owner
+  ansible.builtin.file:
+    path: "{{ROCKETMQ_HOME}}"
+    state: directory
+    recurse: yes
+    mode: '0755'
+    owner: "{{ROCKETMQ_USER}}"
+    group: "{{ROCKETMQ_GROUP}}"
+
+- name: Add sudo start rule
+  lineinfile:
+    dest: /etc/sudoers
+    insertafter: EOF
+    line: '{{ROCKETMQ_USER}} ALL=(ALL) NOPASSWD: /usr/bin/systemctl start {{BROKER_SYSTEMD_NAME}}'
+    validate: '/usr/sbin/visudo -cf %s'
+    state: present
+    backup: yes
+
+- name: Add sudo stop rule
+  lineinfile:
+    dest: /etc/sudoers
+    insertafter: EOF
+    line: '{{ROCKETMQ_USER}} ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop {{BROKER_SYSTEMD_NAME}}'
+    validate: '/usr/sbin/visudo -cf %s'
+    state: present
+    backup: yes
+
+- name: Add sudo restart rule
+  lineinfile:
+    dest: /etc/sudoers
+    insertafter: EOF
+    line: '{{ROCKETMQ_USER}} ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart {{BROKER_SYSTEMD_NAME}}'
+    validate: '/usr/sbin/visudo -cf %s'
+    state: present
+    backup: yes
+
+
+- name: Patch
+  when: PATCH_ENABLED
+  shell: |
+    CONTROLLER_PATCH_FILE={{CONTROLLER_PATCH_FILE}}
+    STORE_PATCH_FILE={{STORE_PATCH_FILE}}
+    if [[ ! -f /tmp/$(baseame $CONTROLLER_PATCH_FILE) ]];then
+      aws s3 cp {{CONTROLLER_PATCH_FILE}} /tmp/$(baseame $CONTROLLER_PATCH_FILE)
+      rsync /tmp/$(baseame $CONTROLLER_PATCH_FILE) {{ROCKETMQ_HOME}}/lib/$(baseame $CONTROLLER_PATCH_FILE)
+    fi
+    if [[ ! -f /tmp/$(baseame $STORE_PATCH_FILE) ]];then
+      aws s3 cp {{STORE_PATCH_FILE}} /tmp/$(baseame $STORE_PATCH_FILE)
+      rsync /tmp/$(baseame $STORE_PATCH_FILE) {{ROCKETMQ_HOME}}/lib/$(baseame $STORE_PATCH_FILE)
+    fi
+

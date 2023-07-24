@@ -1,0 +1,16 @@
+[Unit]
+Description="kafka exporter {{version}}"
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+EnvironmentFile=-{{home}}/.env
+User={{user}}
+Group={{group}}
+WorkingDirectory={{home}}
+ExecStart={{exec_file}} --web.listen-address={{web_listen_address}} --kafka.version={{kafka_version}} {% for s in kafka_servers.split(',') %}--kafka.server={{s}} {% endfor +%}
+Restart=on-failure
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

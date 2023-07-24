@@ -1,0 +1,130 @@
+---
+- name: user create
+  tags: ["deploy", "user"]
+  user:
+    name: "{{user}}"
+    state: present
+
+- name: group create
+  tags: ["deploy", "group"]
+  group:
+    name: "{{group}}"
+    state: present
+
+# for elasticsearch
+- name: Set vm.max_map_count to 262144 in sysctl
+  tags: ["deploy", "sysset"]
+  sysctl: name={{ item.key }} value={{ item.value }}
+  loop:
+    - { key: "vm.max_map_count", value: "262144" }
+    - { key: "fs.file-max", value: "65536" }
+
+- name: ensure home and relavtive dirs created
+  tags: ["deploy", "home"]
+  file:
+    path: "{{item}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop:
+    - "{{home}}"
+
+- name: Environement File
+  tags: ["deploy", "env"]
+  template:
+    src: env
+    dest: "{{home}}/.env"
+
+- name: check if downloaded
+  tags: ["deploy", "download"]
+  stat:
+    path: "{{download_dest}}"
+  register: downloaded
+
+- name: "Download"
+  tags: ["deploy", "download"]
+  when: not downloaded.stat.exists
+  copy:
+    src: "{{archive_file}}"
+    dest: "{{download_dest}}"
+
+- name: check if deployed already
+  tags: ["deploy"]
+  stat:
+    path: "{{home}}/bin"
+  register: deployed
+
+- name: "Deploy"
+  tags: ["deploy"]
+  when: not deployed.stat.exists
+  block:
+  - name: create temp dir
+    tempfile:
+      state: directory
+    register: r_tempdir
+
+  - name: unarchive
+    unarchive:
+      src: "{{download_dest}}"
+      dest: "{{r_tempdir.path}}"
+      remote_src: yes
+
+  - name: sync to home dir
+    synchronize:
+      src: "{{r_tempdir.path}}/elasticsearch-{{version}}/"
+      dest: "{{home}}/"
+    delegate_to: "{{ inventory_hostname }}"
+
+  - name: clean temp dir
+    when: r_tempdir is defined
+    file: 
+      path: "{{r_tempdir.path}}"
+      state: absent
+
+- name: "Systemd Unit File"
+  tags: ["deploy", "config", "systemd"]
+  template:
+    src: "{{item}}"
+    dest: "/etc/systemd/system/{{item}}"
+  loop:
+  - "{{systemd_name}}.service"
+
+- name: "Custom Jvm Options"
+  tags: ["deploy", "config", "jvmopt"]
+  template:
+    src: "{{item}}"
+    dest: "{{home}}/config/jvm.options.d/{{item}}"
+  loop:
+  - "heapsize.options"
+
+- name: "Config Files"
+  tags: ["deploy", "config", "esconfig"]
+  template:
+    src: "{{item}}"
+    dest: "{{home}}/config/{{item}}"
+  loop:
+  - "elasticsearch.yml"
+
+- name: Home Dir Owner And Group
+  tags: ["deploy", "config", "ownergroup"]
+  file:
+    path: "{{home}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+    recurse: yes
+
+- name: Sudoer Rules
+  import_tasks: "{{role_path}}/tasks/sudorules.yml"
+
+- name: Tls Setup  
+  import_tasks: "{{role_path}}/tasks/tptls.yml"
+
+- name: Service Start
+  tags: ["deploy", "start"]
+  when: start
+  systemd:
+    name: "{{systemd_name}}"
+    state: started
+    enabled: true
+    daemon_reload: true

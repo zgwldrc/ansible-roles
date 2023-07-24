@@ -1,0 +1,22 @@
+---
+# vars file for elasticsearch-exporter
+SYSTEMD_NAME: kafka
+SYSTEMD_NAME_ZK: zookeeper
+USER: app_user
+GROUP: app_group
+VERSION: 2.11-2.4.1
+HOME: "/data/{{SYSTEMD_NAME}}/{{VERSION}}"
+BINDIR: /data/{{SYSTEMD_NAME}}/{{VERSION}}/bin
+
+S3_URL: s3://bgtest-repository/middleware/kafka/kafka_2.11-2.4.1.tgz
+UNARCHIVE_DIR: kafka_2.11-2.4.1
+DOWNLOAD_DEST: /tmp/kafka_2.11-2.4.1.tgz
+
+SYSTEMD_UNIT: "/usr/lib/systemd/system/{{SYSTEMD_NAME}}.service"
+SYSTEMD_UNIT_ZK: "/usr/lib/systemd/system/{{SYSTEMD_NAME_ZK}}.service"
+JAVA_HOME: /usr/local/jdk1.8
+
+KAFKA_LISTEN_PORT: 9092
+KAFKA_LOG_DIR: "{{HOME}}/kafka-logs"
+KAFKA_PARTITIONS: 1
+KAFKA_ZK_CONNECT: "localhost:2181"

@@ -1,0 +1,24 @@
+---
+# vars file for rocketmq
+ROCKETMQ_USER: java_app
+ROCKETMQ_GROUP: appgroup
+ROCKETMQ_VERSION: 5.1.0
+ROCKETMQ_HOME: /data/rocketmq/5.1.0
+S3_URL: s3://bgtest-repository/middleware/rocketmq/rocketmq-all-5.1.0-bin-release.zip
+
+PATCH_ENABLED: true
+CONTROLLER_PATCH_FILE: s3://bgtest-repository/middleware/rocketmq/rocketmq-controller-5.1.0.jar
+STORE_PATCH_FILE: s3://bgtest-repository/middleware/rocketmq/rocketmq-store-5.1.0.jar
+
+# dirname after unzip 
+UNZIP_DIR: rocketmq-all-5.1.0-bin-release
+DOWNLOAD_DEST: /tmp/rocketmq-all-5.1.0-bin-release.zip
+
+JAVA_HOME: /usr/local/jdk1.8
+NAMESRV_SYSTEMD_NAME: rmq_namesrv
+BROKER_SYSTEMD_NAME: rmq_broker
+
+NamesrvEnabled: true
+ClusterName: DefaultCluster
+BrokerName: broker-a
+

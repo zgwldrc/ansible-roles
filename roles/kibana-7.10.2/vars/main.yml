@@ -1,0 +1,29 @@
+systemd_name: "kibana"
+uninstall: false
+user: app_user
+group: app_group
+version: 7.10.2
+home: "/data/{{systemd_name}}/{{version}}"
+archive_file: "{{systemd_name}}-{{version}}-linux-x86_64.tar.gz"
+archive_url: https://artifacts.elastic.co/downloads/{{systemd_name}}/{{archive_file}}
+download_dest: "/tmp/{{archive_file}}"
+
+# used for service ctl alias commands
+# for example {{systemd_name_short}}status -> systemctl status {{systemd_name}}.service
+systemd_name_short: "kbn"
+
+# ENV
+
+
+# custom jvm options
+## head size
+jvm_opt_xms: 2g
+jvm_opt_xmx: 2g
+
+## kibana.yml
+# xpack.security.enabled
+xpack_security_enabled: true
+# cluster.name
+cluster_name: "elasticsearch"
+# action.auto_create_index
+action_auto_create_index: .monitoring*,.watches,.triggered_watches,.watcher-history*,.ml*

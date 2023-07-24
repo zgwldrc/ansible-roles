@@ -1,0 +1,71 @@
+version: 4.9.3
+home: "/data/rocketmq/{{version}}"
+user: "java_app"
+group: "appgroup"
+cfg_path: "{{home}}/conf/broker.conf"
+
+
+# broker.conf
+# 指定整个broker集群的名称，或者说是RocketMQ集群的名称
+brokerClusterName: ""
+# 指定master-slave集群的名称。一个RocketMQ集群可以包含多个master-slave集群
+brokerName: ""
+# master的brokerId为0
+brokerId: 0
+# 指定删除消息存储过期文件的时间为凌晨4点
+deleteWhen: "04"
+# 指定当前broker为异步复制master,
+# - ASYNC_MASTER 异步复制Master 
+# - SYNC_MASTER 同步双写Master 
+# - SLAVE 从
+brokerRole: "ASYNC_MASTER"
+# 指定刷盘策略为异步刷盘
+# - ASYNC_FLUSH 异步刷盘
+# - SYNC_FLUSH 同步刷盘
+flushDiskType: "ASYNC_FLUSH"
+# 指定Broker对外提供服务的端口，即Broker与producer与consumer通信的端口。默认 10911。
+listenPort: 10911
+haListenPort: 10912
+# 指定Name Server的地址
+namesrvAddr: ""
+# 新建Topic所创建的队列数
+defaultTopicQueueNums: 16
+# 是否允许 Broker 自动创建Topic，建议生产环境中关闭
+autoCreateTopicEnable: false
+# 是否允许 Broker 自动创建订阅组，建议生产环境中关闭
+autoCreateSubscriptionGroup: true
+# 指定未发生新的消息存储文件的保留时长x小时，x小时后过期，将会被删除
+fileReservedTime: 72
+# 指定commitLog目录中每个文件的大小，默认1G
+mapedFileSizeCommitLog: 1073741824
+# 指定ConsumeQueue的每个Topic的每个Queue文件中可以存放的消息数量，默认30w条
+mapedFileSizeConsumeQueue: 300000
+# 指定commitlog、consumequeue所在磁盘分区的最大使用，超过该值，则需立即清除过期文件
+diskMaxUsedSpaceRatio: 88
+# 在清除过期文件时，如果该文件被其他线程所占用（引用数大于0，比如读取消息），此时会阻止 此次删除任务，同时在第一次试图删除该文件时记录当前时间戳。
+# 该属性则表示从第一次拒绝删除 后开始计时，该文件最多可以保留的时长。在此时间内若引用数仍不为0，则删除仍会被拒绝。不过 时间到后，文件将被强制删除 
+# destroyMapedFileIntervalForcibly=120000
+
+# 指定存储位置
+storePathRootDir: "{{home}}/store"
+# commitLog目录路径
+storePathCommitLog: "{{home}}/store/commitlog"
+# 消费队列存储路径存储路径
+storePathConsumeQueue: "{{home}}/store/consumequeue"
+# 消息索引存储路径
+storePathIndex: "{{home}}/store/index"
+# checkpoint 文件存储路径
+storeCheckpoint: "{{home}}/store/checkpoint"
+# abort 文件存储路径
+abortFile: "{{home}}/store/abort"
+
+# 指定消息的最大大小 默认4M 变量默认0时则配置文件中不配置此选项
+maxMessageSize: 0
+# 发消息线程池数量 变量默认0时则配置文件中不配置此选项
+sendMessageThreadPoolNums: 0
+# 拉消息线程池数量 变量默认0时则配置文件中不配置此选项
+pullMessageThreadPoolNums: 0
+# 是否使用可重入锁 变量默认false时则配置文件中不配置此选项
+useReentrantLockWhenPutMessage: false
+# 本地事务自查最大次数 变量默认0时则配置文件中不配置此选项
+transactionCheckMax: 0

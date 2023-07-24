@@ -1,0 +1,116 @@
+---
+- name: user create
+  user:
+    name: "{{user}}"
+    state: present
+
+- name: group create
+  group:
+    name: "{{group}}"
+    state: present
+
+- name: ensure home and relavtive dirs created
+  file:
+    path: "{{item}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop:
+    - "{{home}}"
+
+- name: Environement File
+  template:
+    src: env
+    dest: "{{home}}/.env"
+
+- name: systemd unit file generation
+  template:
+    src: unitfile.service
+    dest: "/etc/systemd/system/{{systemd_name}}.service"
+
+- name: "Download"
+  block:
+  - name: check if downloaded
+    stat:
+      path: "{{download_dest}}"
+    register: downloaded  
+  - name: download from ansible control node
+    when: not downloaded.stat.exists
+    copy:
+      src: "{{archive_file}}"
+      dest: "{{download_dest}}"
+
+- name: "Deploy"
+  block:
+  - name: check if deployed already
+    stat:
+      path: "{{exec_file}}"
+    register: deployed
+  - name: create temp dir
+    when: not deployed.stat.exists
+    tempfile:
+      state: directory
+    register: r_tempdir
+  - name: unarchive
+    when: not deployed.stat.exists
+    unarchive:
+      src: "{{download_dest}}"
+      dest: "{{r_tempdir.path}}"
+      remote_src: yes
+  - name: sync to home dir
+    when: not deployed.stat.exists
+    synchronize:
+      src: "{{r_tempdir.path}}/kafka_exporter-{{version}}.linux-amd64/"
+      dest: "{{home}}/"
+    delegate_to: "{{ inventory_hostname }}"
+  - name: clean temp dir
+    when: not deployed.stat.exists
+    file: 
+      path: "{{r_tempdir.path}}"
+      state: absent
+
+- name: ensure home dir owner and group
+  file:
+    path: "{{home}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+    recurse: yes
+
+- name: Sudo Rules and Bashrc Alias For Kafka
+  block:
+  - name: add service control shortcuts commands
+    blockinfile:
+      path: "/home/{{user}}/.bashrc"
+      marker: "# {{item}} svcctl {mark} ANSIBLE MANAGED BLOCK"
+      block: |
+        alias {{item}}status='sudo systemctl status {{item}}.service'
+        alias {{item}}start='sudo systemctl start {{item}}.service'
+        alias {{item}}stop='sudo systemctl stop {{item}}.service'
+        alias {{item}}restart='sudo systemctl restart {{item}}.service'
+        alias {{item}}log='journalctl -u {{item}}.service -f -n 200 -o cat'
+      create: true
+      owner: "{{user}}"
+      group: "{{group}}"
+    loop:
+      - "{{systemd_name}}"
+
+  - name: add sudoers file
+    blockinfile:
+      path: "/etc/sudoers.d/{{user}}"
+      create: true
+      marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+      block: |
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl start {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl stop {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{item}}.service
+    loop:
+      - "{{systemd_name}}"
+
+- name: "{{systemd_name}} Service Start" 
+  systemd:
+    name: "{{systemd_name}}"
+    state: started
+    enabled: true
+    daemon_reload: true  

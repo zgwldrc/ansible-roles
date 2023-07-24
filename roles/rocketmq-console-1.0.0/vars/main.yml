@@ -1,0 +1,22 @@
+---
+systemd_name: rmq_console
+uninstall: false
+version: 1.0.0
+# if install_from_files: true then copy zip package from files directory in role
+# and skip s3_url and urlpath
+install_from_files: true
+s3_url: ""
+archive_file: "rocketmq-console-ng-{{version}}.jar"
+urlpath: ""
+download_dest: "/tmp/{{archive_file}}"
+home: "/data/rocketmq-console/{{version}}"
+user: "rocketmq"
+group: "rocketmq"
+
+# memory
+
+# install openjdk 11
+openjdk11_install: true
+java_home: /usr/lib/jvm/java-11-openjdk-amd64
+
+namesrvAddrs: ["127.0.0.1:9876"]

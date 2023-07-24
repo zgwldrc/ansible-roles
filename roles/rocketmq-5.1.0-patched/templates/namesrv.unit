@@ -1,0 +1,13 @@
+[Unit]
+Description=rmq_namesrv
+After=network.target
+
+[Service]
+Type=simple
+User={{ROCKETMQ_USER}}
+Group={{ROCKETMQ_GROUP}}
+ExecStart=/usr/bin/sh -c ". /home/java_app/.bash_profile; {{ROCKETMQ_HOME}}/bin/mqnamesrv"
+ExecStop=/usr/bin/sh -c ". /home/java_app/.bash_profile; {{ROCKETMQ_HOME}}/bin/mqshutdown namesrv"
+
+[Install]
+WantedBy=multi-user.target

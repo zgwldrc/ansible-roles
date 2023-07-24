@@ -1,0 +1,13 @@
+[Unit]
+Description=rmq_broker
+After=network.target
+
+[Service]
+Type=simple
+User={{ROCKETMQ_USER}}
+Group={{ROCKETMQ_GROUP}}
+ExecStart=/usr/bin/sh -c ". /home/java_app/.bash_profile;{{ROCKETMQ_HOME}}/bin/mqbroker -c {{ROCKETMQ_HOME}}/conf/broker.conf"
+ExecStop=/usr/bin/sh -c ". /home/java_app/.bash_profile;{{ROCKETMQ_HOME}}/bin/mqshutdown broker"
+
+[Install]
+WantedBy=multi-user.target

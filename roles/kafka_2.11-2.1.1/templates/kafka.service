@@ -1,0 +1,17 @@
+[Unit]
+Description="kafka {{version}}"
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+EnvironmentFile=-{{home}}/.env
+Environment="KAFKA_HEAP_OPTS={{kafka_heap_opts}}"
+User={{user}}
+Group={{group}}
+WorkingDirectory={{home}}
+ExecStart={{home}}/bin/kafka-server-start.sh {{home}}/config/server.properties
+Restart=on-failure
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
