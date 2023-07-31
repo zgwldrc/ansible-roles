@@ -1,0 +1,17 @@
+---
+systemd_name: kafka
+systemd_short_name: kfk
+zk_systemd_name: zookeeper
+zk_systemd_short_name: zk
+
+uninstall: false
+scala_version: 2.11
+version: 2.1.1
+archive_file: "kafka_{{scala_version}}-{{version}}.tgz"
+urlpath: "https://archive.apache.org/dist/kafka/2.1.1/kafka_2.11-2.1.1.tgz"
+download_dest: "/tmp/{{archive_file}}"
+home: "/data/{{systemd_name}}/{{scala_version}}-{{version}}"
+# bk app user and group name
+user: "app_user"
+group: "app_group"
+java_home: /usr/lib/jvm/java-11-openjdk-amd64

@@ -16,8 +16,9 @@
     owner: "{{user}}"
     group: "{{group}}"
   loop:
-    - "{{home}}"
+    - "{{home}}/logs"
     - "{{zkDataDir}}"
+    - "{{zkDataLogDir}}"
 
 - name: Environement File
   template:

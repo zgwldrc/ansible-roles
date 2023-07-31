@@ -1,0 +1,9 @@
+---
+- name: restart {{systemd_name}} service
+  systemd:
+    name: "{{systemd_name}}"
+    state: restarted
+- name: restart {{zk_systemd_name}} service
+  systemd:
+    name: "{{zk_systemd_name}}"
+    state: restarted  

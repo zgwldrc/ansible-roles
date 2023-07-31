@@ -1,7 +1,7 @@
-Role Name
-=========
+kafka 3.4.1
+===========
 
-A brief description of the role goes here.
+scala 2.12 kafka 3.4.1 zookeeper 3.6.4
 
 Requirements
 ------------
@@ -23,9 +23,33 @@ Example Playbook
 
 Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+```yaml
+- hosts: s2,s3,s4
+  remote_user: david
+  become: true
+  roles:
+  - role: openjdk-17.0.1_linux-x64
+    user: david
+    group: david
+  - role: kafka_2.11-2.x.x
+    version: 2.4.1
+    user: david
+    group: david
+    java_home: /usr/local/jdk/17.0.1
+    kafka_heap_opts: "-Xmx1G -Xms1G"
+    num_network_threads: 3
+    num_io_threads: 8
+    socket_send_buffer_bytes: 102400
+    socket_receive_buffer_bytes: 102400
+    socket_request_max_bytes: 104857600
+    num_recovery_threads_per_data_dir: 1
+    auto_create_topics_enable: true
+    transaction_state_log_min_isr: 2
+    log_retention_hours: 48
+    log_retention_bytes: 0
+    zk_heap_opts: "-Xmx256m -Xms256m"
+
+```
 
 License
 -------

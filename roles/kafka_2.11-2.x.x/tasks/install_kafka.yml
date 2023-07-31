@@ -19,18 +19,18 @@
   - name: add service control shortcuts commands
     blockinfile:
       path: "/home/{{user}}/.bashrc"
-      marker: "# {{item}} svcctl {mark} ANSIBLE MANAGED BLOCK"
+      marker: "# {{item.long}} svcctl {mark} ANSIBLE MANAGED BLOCK"
       block: |
-        alias {{item}}status='sudo systemctl status {{item}}.service'
-        alias {{item}}start='sudo systemctl start {{item}}.service'
-        alias {{item}}stop='sudo systemctl stop {{item}}.service'
-        alias {{item}}restart='sudo systemctl restart {{item}}.service'
-        alias {{item}}log='journalctl -u {{item}}.service -f -n 200 -o cat'
+        alias {{item.short}}status='sudo systemctl status {{item.long}}.service'
+        alias {{item.short}}start='sudo systemctl start {{item.long}}.service'
+        alias {{item.short}}stop='sudo systemctl stop {{item.long}}.service'
+        alias {{item.short}}restart='sudo systemctl restart {{item.long}}.service'
+        alias {{item.short}}log='journalctl -u {{item.long}}.service -f -n 200 -o cat'
       create: true
       owner: "{{user}}"
       group: "{{group}}"
     loop:
-      - "kafka"
+      - {"short": "kfk", "long": "kafka"}
 
   - name: kafka shortcuts in bashrc
     blockinfile:
