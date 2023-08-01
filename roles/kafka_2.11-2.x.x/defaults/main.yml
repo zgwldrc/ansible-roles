@@ -1,4 +1,11 @@
 ---
+# ca role define
+# when a node define ca_role is true, ca cert will be generated on that node
+ca_role: false
+# tls host specific
+common_name: "{{inventory_hostname}}"
+dns_names: ["broker01.example.test"]
+
 # kafka
 kafka_heap_opts: "-Xmx1G -Xms1G"
 num_network_threads: 3

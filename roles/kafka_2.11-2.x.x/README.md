@@ -1,12 +1,23 @@
-kafka 3.4.1
+kafka 2.4.1
 ===========
 
 scala 2.12 kafka 3.4.1 zookeeper 3.6.4
 
-Requirements
-------------
+Usage
+-----
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+first step gen ca and server certs, this will fetch ca keystore to same directory with playbook
+
+```
+ansible-playbook site.yml -K -i inventory.yml
+```
+
+step two sign server cert with ca
+
+```
+ansible-playbook site.yml -e signcert=true
+```
+
 
 Role Variables
 --------------

@@ -1,0 +1,46 @@
+- name: Check CA Keystore Exists
+  stat:
+    path: "{{ca_keystore_path}}"
+  register: rv_ca_keystore
+- name: Generate CA KeyPair
+  when: not rv_ca_keystore.stat.exists
+  block:
+  - name: Generate Script
+    template:
+      src: gen_ca_keystore.sh
+      dest: "{{home}}/scripts/gen_ca_keystore.sh"
+      mode: u=rwx,g=rwx,o=x
+  - name: Run Script
+    command:
+      cmd: "{{home}}/scripts/gen_ca_keystore.sh"
+
+- name: Check ca cert exists
+  stat:
+    path: "{{ca_cert_path}}"
+  register: rv_ca_cert
+- name: Export Ca Cert
+  when: not rv_ca_cert.stat.exists
+  shell: |
+    {{java_home}}/bin/keytool -exportcert -alias {{ca_alias}} -keystore {{ca_keystore_path}} \
+    -storepass {{ca_storepass}} -rfc -file {{ca_cert_path}}
+  args:
+    executable: /bin/bash
+
+- name: Check client truststore exists
+  stat:
+    path: "{{cli_truststore_path}}"
+  register: rv_cli_truststore
+- name: Import Ca Cert
+  when: not rv_cli_truststore.stat.exists
+  shell: |
+    {{java_home}}/bin/keytool -keystore {{cli_truststore_path}} -alias CARoot -importcert -file {{ca_cert_path}} \
+    -storepass {{cli_truststore_pass}} -trustcacerts -noprompt
+  args:
+    executable: /bin/bash
+
+- name: fetch ca keystore
+  fetch:
+    src: "{{ca_keystore_path}}"
+    dest: "{{playbook_dir}}/ca.keystore.jks"
+    flat: true
+    

@@ -1,0 +1,25 @@
+- name: remove existing keystore
+  when: genkeystoreforce
+  file: 
+    path: "{{item}}"
+    state: absent
+  loop:
+  - "{{keystore_path}}"
+  - "{{certreq_path}}"
+  
+- name: Check Server Keystore Exists
+  stat:
+    path: "{{keystore_path}}"
+  register: rv_keystore
+- name: Generate Server KeyPair
+  when: not rv_keystore.stat.exists
+  block:
+  - name: Generate Script
+    template:
+      src: gen_keystore.sh
+      dest: "{{home}}/scripts/gen_keystore.sh"
+      mode: u=rwx,g=rwx,o=x
+  - name: Run Script
+    command:
+      cmd: "{{home}}/scripts/gen_keystore.sh"
+    

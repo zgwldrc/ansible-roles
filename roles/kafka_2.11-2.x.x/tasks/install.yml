@@ -17,6 +17,8 @@
     group: "{{group}}"
   loop:
     - "{{home}}/logs"
+    - "{{home}}/tls"
+    - "{{home}}/scripts"
     - "{{zkDataDir}}"
     - "{{zkDataLogDir}}"
 
@@ -66,6 +68,24 @@
     file: 
       path: "{{r_tempdir.path}}"
       state: absent
+
+- name: server keypair setup
+  when: tls_enabled
+  include_tasks: "{{role_path}}/tasks/gen_keypair.yml"
+
+- name: ca setup
+  when:
+  - ca_role
+  - tls_enabled
+  include_tasks: "{{role_path}}/tasks/gen_ca.yml"
+
+- name: ca setup
+  when:
+  - ca_role
+  - tls_enabled
+  - signcert
+  include_tasks: "{{role_path}}/tasks/gen_ca.yml"
+
 
 - name: install and start embeded zookeeper
   when: useEmbededZk

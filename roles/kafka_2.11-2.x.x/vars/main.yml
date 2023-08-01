@@ -15,3 +15,24 @@ home: "/data/{{systemd_name}}/{{scala_version}}-{{version}}"
 user: "app_user"
 group: "app_group"
 java_home: /usr/lib/jvm/java-11-openjdk-amd64
+
+# server tls common
+tls_enabled: true
+genkeystoreforce: false
+# signcert switch should be true after ca setup 
+# this control signing tasks when should be run
+signcert: false
+keystore_alias: "mykey"
+validity: 36500
+storepass: "123456"
+keystore_path: "{{home}}/tls/server.keystore.jks"
+certreq_path: "{{home}}/tls/server.certreq"
+## ca tls
+ca_alias: "myca"
+ca_common_name: "myca"
+ca_storepass: "123456"
+ca_keystore_path: "{{home}}/tls/ca.keystore.jks"
+ca_cert_path: "{{home}}/tls/ca.cert"
+## client tls
+cli_truststore_path: "{{home}}/tls/client.truststore.jks"
+cli_truststore_pass: "123456"
