@@ -16,7 +16,7 @@ user: "app_user"
 group: "app_group"
 java_home: /usr/lib/jvm/java-11-openjdk-amd64
 
-# server tls common
+################################### server tls common
 tls_enabled: true
 genkeystoreforce: false
 # signcert switch should be true after ca setup 
@@ -36,3 +36,13 @@ ca_cert_path: "{{home}}/tls/ca.cert"
 ## client tls
 cli_truststore_path: "{{home}}/tls/client.truststore.jks"
 cli_truststore_pass: "123456"
+
+############################### SASL
+# use sasl plain authentication mechanism
+_sasl_plain_enabled: false
+_sasl_plain_listener_name: "SASL_PLAINTEXT"
+_sasl_plain_username: admin
+_sasl_plain_password: admin
+_sasl_plain_users:
+  admin: admin
+  user1: user1

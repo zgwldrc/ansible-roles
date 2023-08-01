@@ -2,11 +2,18 @@
 # ca role define
 # when a node define ca_role is true, ca cert will be generated on that node
 ca_role: false
-# tls host specific
+# server tls host specific
 common_name: "{{inventory_hostname}}"
 dns_names: ["broker01.example.test"]
 
 # kafka
+listeners: "PLAINTEXT://0.0.0.0:9092"
+advertised_listeners: "PLAINTEXT://{{ansible_default_ipv4.address}}:9092"
+security_inter_broker_protocol: "PLAINTEXT"
+listener_security_protocol_map: PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL
+sasl_mechanism_inter_broker_protocol: "GSSAPI"
+sasl_enabled_mechanisms: "GSSAPI"
+
 kafka_heap_opts: "-Xmx1G -Xms1G"
 num_network_threads: 3
 num_io_threads: 8
