@@ -1,0 +1,27 @@
+---
+# defaults file for rabbitmq-3.x.x
+default_vhost: /
+default_user: guest
+default_pass: guest
+
+## Network
+listeners_tcp_default: 5672
+management_listener_port: 15672
+
+## Clustering
+cluster_partition_handling: autoheal
+
+## Logging
+log_dir: "{{home}}/logs"
+log_file: "rabbit.log"
+log_file_level: "info"
+log_file_rotation_date: ""
+log_file_rotation_size: ""
+
+## Memory-based Flow Control
+vm_memory_high_watermark_relative: 0.4
+vm_memory_high_watermark_paging_ratio: 0.5
+
+## Disk-based Flow Control
+disk_free_limit_relative: 2.0
+

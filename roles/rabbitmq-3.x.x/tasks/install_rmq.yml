@@ -1,0 +1,59 @@
+- name: "{{systemd_name}} Config"
+  block:
+  - name: "Systemd unit file generate"
+    template:
+      src: "{{item}}"
+      dest: "/etc/systemd/system/{{item}}"
+    loop:
+    - "{{systemd_name}}.service"
+
+  - name: "{{item.name}}"
+    template:
+      src: "{{item.src}}"
+      dest: "{{item.dest}}"
+      owner: "{{user}}"
+      group: "{{group}}"      
+    loop: 
+    - {name: "{{systemd_name}} env", src: "rabbitmq-env.conf", dest: "{{home}}/etc/rabbitmq/rabbitmq-env.conf"}
+    - {name: "{{systemd_name}} config", src: "rabbitmq.conf", dest: "{{home}}/etc/rabbitmq/rabbitmq.conf"}
+    notify:
+    - restart service
+    
+      
+- name: Sudo Rules and Bashrc Alias For {{systemd_name}}
+  block:
+  - name: add service control shortcuts commands
+    blockinfile:
+      path: "/home/{{user}}/.bashrc"
+      marker: "# {{item.long}} svcctl {mark} ANSIBLE MANAGED BLOCK"
+      block: |
+        alias {{item.short}}status='sudo systemctl status {{item.long}}.service'
+        alias {{item.short}}start='sudo systemctl start {{item.long}}.service'
+        alias {{item.short}}stop='sudo systemctl stop {{item.long}}.service'
+        alias {{item.short}}restart='sudo systemctl restart {{item.long}}.service'
+        alias {{item.short}}log='journalctl -u {{item.long}}.service -f -n 200 -o cat'
+      create: true
+      owner: "{{user}}"
+      group: "{{group}}"
+    loop:
+    - {"short": "{{systemd_short_name}}", "long": "{{systemd_name}}"}
+
+  - name: add sudoers file
+    blockinfile:
+      path: "/etc/sudoers.d/{{user}}"
+      create: true
+      marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+      block: |
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl start {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl stop {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{item}}.service
+    loop:
+      - "{{systemd_name}}"
+
+- name: "{{systemd_name}} Service Start"
+  systemd:
+    name: "{{systemd_name}}"
+    state: started
+    enabled: true
+    daemon_reload: true
