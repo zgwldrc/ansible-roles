@@ -79,12 +79,11 @@
   - tls_enabled
   include_tasks: "{{role_path}}/tasks/gen_ca.yml"
 
-- name: ca setup
+- name: signcert
   when:
-  - ca_role
   - tls_enabled
   - signcert
-  include_tasks: "{{role_path}}/tasks/gen_ca.yml"
+  include_tasks: "{{role_path}}/tasks/signcert.yml"
 
 
 - name: install and start embeded zookeeper

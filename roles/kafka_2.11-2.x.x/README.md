@@ -18,7 +18,6 @@ step two sign server cert with ca
 ansible-playbook site.yml -e signcert=true
 ```
 
-
 Role Variables
 --------------
 
@@ -42,6 +41,38 @@ Including an example of how to use your role (for instance, with variables passe
   - role: openjdk-17.0.1_linux-x64
     user: david
     group: david
+  - role: kafka_2.11-2.x.x
+    version: 2.4.1
+    user: david
+    group: david
+    java_home: /usr/local/jdk/17.0.1
+    kafka_heap_opts: "-Xmx1G -Xms1G"
+    num_network_threads: 3
+    num_io_threads: 8
+    socket_send_buffer_bytes: 102400
+    socket_receive_buffer_bytes: 102400
+    socket_request_max_bytes: 104857600
+    num_recovery_threads_per_data_dir: 1
+    auto_create_topics_enable: true
+    transaction_state_log_min_isr: 2
+    log_retention_hours: 48
+    log_retention_bytes: 0
+    zk_heap_opts: "-Xmx256m -Xms256m"
+
+    listeners: "SASL_PLAINTEXT://:9092"
+    advertised_listeners: "SASL_PLAINTEXT://{{ansible_default_ipv4.address}}:9092"
+    inter_broker_listener_name: "SASL_PLAINTEXT"
+    listener_security_protocol_map: PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL
+    sasl_mechanism_inter_broker_protocol: "PLAIN"
+    sasl_enabled_mechanisms: "PLAIN"
+    _sasl_plain_enabled: true
+    _sasl_plain_listener_name: "SASL_PLAINTEXT"
+    _sasl_plain_username: admin
+    _sasl_plain_password: admin
+    _sasl_plain_users:
+      admin: admin
+      david: david
+
   - role: kafka_2.11-2.x.x
     version: 2.4.1
     user: david

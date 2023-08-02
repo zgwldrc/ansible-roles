@@ -1,0 +1,16 @@
+- name: copy ca keystore to nodes
+  when: not ca_role
+  copy:
+    src: "{{playbook_dir}}/{{ca_keystore_path|basename}}"
+    dest: "{{ca_keystore_path}}"
+
+- name: sign cert using ca keystore
+  shell: |
+    export PATH="{{java_home}}/bin:$PATH"
+    keytool -keystore {{keystore_path}} -storepass {{storepass}} -alias {{keystore_alias}} -certreq |
+    keytool -keystore {{ca_keystore_path}} -storepass {{ca_storepass}} -alias {{ca_alias}} -gencert |
+    keytool -keystore {{keystore_path}} -storepass {{storepass}} -alias {{keystore_alias}} -importcert
+  args:
+    executable: /bin/bash
+
+

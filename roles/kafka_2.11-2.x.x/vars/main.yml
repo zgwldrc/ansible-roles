@@ -6,9 +6,9 @@ zk_systemd_short_name: zk
 
 uninstall: false
 scala_version: 2.11
-version: 2.1.1
+version: 2.4.1
 archive_file: "kafka_{{scala_version}}-{{version}}.tgz"
-urlpath: "https://archive.apache.org/dist/kafka/2.1.1/kafka_2.11-2.1.1.tgz"
+urlpath: "https://archive.apache.org/dist/kafka/2.4.1/kafka_2.11-2.4.1.tgz"
 download_dest: "/tmp/{{archive_file}}"
 home: "/data/{{systemd_name}}/{{scala_version}}-{{version}}"
 # bk app user and group name
@@ -16,14 +16,21 @@ user: "app_user"
 group: "app_group"
 java_home: /usr/lib/jvm/java-11-openjdk-amd64
 
-################################### server tls common
+################################### global tls settings
+# if tls_enabled set to false, do not generate any tls relative stuffs
 tls_enabled: true
+# if set genkeystoreforce true, playbook will remove existing keystore before creating
 genkeystoreforce: false
-# signcert switch should be true after ca setup 
-# this control signing tasks when should be run
+# signcert should be set to true only after ca setup
+# we need ca private key to signing other certs
 signcert: false
+
+################################## server keystore settings
+# define server keystore alias used in keytool command line
 keystore_alias: "mykey"
+# keystore validity in days
 validity: 36500
+# keystore password at least 6 chars length
 storepass: "123456"
 keystore_path: "{{home}}/tls/server.keystore.jks"
 certreq_path: "{{home}}/tls/server.certreq"

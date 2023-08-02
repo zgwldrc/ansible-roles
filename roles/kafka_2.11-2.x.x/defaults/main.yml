@@ -9,7 +9,7 @@ dns_names: ["broker01.example.test"]
 # kafka
 listeners: "PLAINTEXT://0.0.0.0:9092"
 advertised_listeners: "PLAINTEXT://{{ansible_default_ipv4.address}}:9092"
-security_inter_broker_protocol: "PLAINTEXT"
+inter_broker_listener_name: "PLAINTEXT"
 listener_security_protocol_map: PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL
 sasl_mechanism_inter_broker_protocol: "GSSAPI"
 sasl_enabled_mechanisms: "GSSAPI"

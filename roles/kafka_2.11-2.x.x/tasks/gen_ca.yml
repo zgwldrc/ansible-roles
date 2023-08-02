@@ -41,6 +41,12 @@
 - name: fetch ca keystore
   fetch:
     src: "{{ca_keystore_path}}"
-    dest: "{{playbook_dir}}/ca.keystore.jks"
+    dest: "{{playbook_dir}}/{{ca_keystore_path|basename}}"
     flat: true
+
+- name: fetch client truststore
+  fetch:
+    src: "{{cli_truststore_path}}"
+    dest: "{{playbook_dir}}/{{cli_truststore_path|basename}}"
+    flat: true    
     

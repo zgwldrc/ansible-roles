@@ -5,6 +5,9 @@ After=network-online.target
 
 [Service]
 EnvironmentFile=-{{home}}/.env
+{% if _sasl_plain_enabled %}
+Environment="KAFKA_OPTS=-Djava.security.auth.login.config={{home}}/config/kafka_server_jaas.conf"
+{% endif %}
 Environment="KAFKA_HEAP_OPTS={{kafka_heap_opts}}"
 User={{user}}
 Group={{group}}

@@ -78,6 +78,18 @@
     loop:
       - "kafka"
 
+  - name: sasl jaas config
+    when: _sasl_plain_enabled
+    template:
+      src: "{{item}}"
+      dest: "{{home}}/config/{{item}}"
+      owner: "{{user}}"
+      group: "{{group}}"
+    loop:
+    - kafka_server_jaas.conf
+    - consumer.properties
+    - producer.properties
+
 - name: Kafka Service Start
   systemd:
     name: "kafka"
