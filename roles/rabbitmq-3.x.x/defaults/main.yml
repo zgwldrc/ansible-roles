@@ -15,8 +15,9 @@ cluster_partition_handling: autoheal
 log_dir: "{{home}}/logs"
 log_file: "rabbit.log"
 log_file_level: "info"
-log_file_rotation_date: ""
-log_file_rotation_size: ""
+log_file_rotation_date: "$D0"
+log_file_rotation_size: 10485760
+log_file_rotation_count: 5
 
 ## Memory-based Flow Control
 vm_memory_high_watermark_relative: 0.4

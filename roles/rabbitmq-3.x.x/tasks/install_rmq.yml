@@ -27,6 +27,7 @@
       path: "/home/{{user}}/.bashrc"
       marker: "# {{item.long}} svcctl {mark} ANSIBLE MANAGED BLOCK"
       block: |
+        export PATH="{{home}}/sbin:$PATH"
         alias {{item.short}}status='sudo systemctl status {{item.long}}.service'
         alias {{item.short}}start='sudo systemctl start {{item.long}}.service'
         alias {{item.short}}stop='sudo systemctl stop {{item.long}}.service'
@@ -57,3 +58,8 @@
     state: started
     enabled: true
     daemon_reload: true
+
+- name: "rabbitmq_management enabled"
+  when: rabbitmq_management
+  shell: |
+    {{home}}/sbin/rabbitmq-plugins enable rabbitmq_management

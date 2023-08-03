@@ -1,2 +1,20 @@
----
-# defaults file for clash-u2210
+java_home: "/usr/local/jdk/17.0.1"
+# kafka ui console
+systemd_name: kui
+version: 0.7.0
+home: /data/kafka-ui/{{version}}
+user: "app_user"
+group: "app_group"
+archive_file: kafka-ui-api-v{{version}}.jar
+download_dest: "{{home}}/{{archive_file}}"
+urlpath: "https://github.com/provectus/kafka-ui/releases/download/v{{version}}/kafka-ui-api-v{{version}}.jar"
+Xms: 256m
+Xmx: 256m
+Xmn: 256m
+server_port: 8080
+# for template kui.yaml
+cluster_name: "DefaultCluster"
+bootstrapServers: "127.0.0.1:9092"
+metrics_port: 0
+# Type of metrics, either JMX or PROMETHEUS. Defaulted to JMX.
+metrics_type: ""

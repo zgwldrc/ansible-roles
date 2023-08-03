@@ -1,5 +1,5 @@
 ---
-- name: restart kafka-ui service
+- name: restart service
   systemd:
-    name: "kui"
+    name: "{{systemd_name}}"
     state: restarted 

@@ -15,48 +15,30 @@
     owner: "{{user}}"
     group: "{{group}}"
   loop:
-    - "{{kui_home}}"
+    - "{{home}}"
 
 - name: check if downloaded
   stat:
-    path: "{{kui_download_dest}}"
+    path: "{{download_dest}}"
   register: kui_downloaded
 
 - name: "Download"
   when: not kui_downloaded.stat.exists
-  block:
-  - name: download from ansible control node
-    when: 
-    - install_from_files
-    copy:
-      src: "{{kui_archive_file}}"
-      dest: "{{kui_download_dest}}"
-
-  - name: download from s3_url
-    when: 
-    - kui_s3_url
-    - not install_from_files
-    shell: |
-      aws s3 cp {{kui_s3_url}} {{kui_download_dest}}
-  - name: download from urlpath
-    when:
-    - not kui_s3_url
-    - not install_from_files
-    get_url:
-      url: "{{kui_urlpath}}"
-      dest: "{{kui_download_dest}}"
+  copy:
+    src: "{{archive_file}}"
+    dest: "{{download_dest}}"
 
 - name: kui systemd unit
   template:
     src: kui.service
-    dest: "/usr/lib/systemd/system/{{kui_systemd_name}}.service"
+    dest: "/usr/lib/systemd/system/{{systemd_name}}.service"
     
 - name: kui config.yaml
   template:
     src: kui.yaml
-    dest: "{{kui_home}}/config.yaml"
+    dest: "{{home}}/config.yaml"
   notify:
-  - "restart kafka-ui service"
+  - "restart service"
 
 - name: add service control shortcuts commands
   blockinfile:
@@ -72,7 +54,7 @@
     owner: "{{user}}"
     group: "{{group}}"
   loop:
-    - "{{kui_systemd_name}}"
+    - "{{systemd_name}}"
 
 - name: add suduers file
   blockinfile:
@@ -85,19 +67,19 @@
       {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{item}}.service
       {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{item}}.service
   loop:
-    - "{{kui_systemd_name}}"   
+    - "{{systemd_name}}"   
 
 - name: ensure home dir owner and group
   file:
-    path: "{{kui_home}}"
+    path: "{{home}}"
     state: directory
     owner: "{{user}}"
     group: "{{group}}"
     recurse: yes
 
-- name: "Enable console service"
+- name: "Enable service"
   systemd:
-    name: "{{kui_systemd_name}}"
+    name: "{{systemd_name}}"
     enabled: yes
     state: started
     daemon_reload: true
