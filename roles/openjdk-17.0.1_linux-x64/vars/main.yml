@@ -3,7 +3,7 @@ uninstall: false
 version: 17.0.1
 s3_url: ""
 archive_file: "openjdk-{{version}}_linux-x64_bin.tar.gz"
-urlpath: "https://d6.injdk.cn/openjdk/openjdk/17/openjdk-{{version}}_linux-x64_bin.tar.gz"
+urlpath: "https://d6.injdk.cn/openjdk/openjdk/17/openjdk-17.0.1_linux-x64_bin.tar.gz"
 download_dest: "/tmp/{{archive_file}}"
 home: "/usr/local/jdk/{{version}}"
 user: "jdk"

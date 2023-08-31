@@ -1,53 +1,47 @@
 ---
 - name: user create
-  tags: ["deploy", "user"]
   user:
     name: "{{user}}"
     state: present
 
 - name: group create
-  tags: ["deploy", "group"]
   group:
     name: "{{group}}"
     state: present
 
 - name: ensure home and relavtive dirs created
-  tags: ["deploy", "home"]
   file:
     path: "{{item}}"
     state: directory
     owner: "{{user}}"
     group: "{{group}}"
   loop:
-    - "{{home}}"
+    - "{{home}}/logs"
+    - "{{home}}/tls"
+    - "{{home}}/scripts"
 
 - name: Environement File
-  tags: ["deploy", "env"]
   template:
     src: env
     dest: "{{home}}/.env"
 
 - name: check if downloaded
-  tags: ["deploy", "download"]
   stat:
     path: "{{download_dest}}"
   register: downloaded
 
 - name: "Download"
-  tags: ["deploy", "download"]
   when: not downloaded.stat.exists
   copy:
     src: "{{archive_file}}"
     dest: "{{download_dest}}"
 
 - name: check if deployed already
-  tags: ["deploy"]
   stat:
     path: "{{home}}/bin"
   register: deployed
 
 - name: "Deploy"
-  tags: ["deploy"]
   when: not deployed.stat.exists
   block:
   - name: create temp dir
@@ -63,7 +57,7 @@
 
   - name: sync to home dir
     synchronize:
-      src: "{{r_tempdir.path}}/kibana-{{version}}-linux-x86_64/"
+      src: "{{r_tempdir.path}}/kafka_{{scala_version}}-{{version}}/"
       dest: "{{home}}/"
     delegate_to: "{{ inventory_hostname }}"
 
@@ -73,41 +67,33 @@
       path: "{{r_tempdir.path}}"
       state: absent
 
-- name: "Systemd Unit File"
-  tags: ["deploy", "config", "systemd"]
-  template:
-    src: "{{item}}"
-    dest: "/etc/systemd/system/{{item}}"
-  loop:
-  - "{{systemd_name}}.service"
+- name: server keypair setup
+  when: tls_enabled
+  include_tasks: "{{role_path}}/tasks/gen_keypair.yml"
 
-- name: "Config Files"
-  tags: ["deploy", "config", "kbnconfig"]
-  template:
-    src: "{{item}}"
-    dest: "{{home}}/config/{{item}}"
-  loop:
-  - "kibana.yml"
-  notify:
-  - restart service
+- name: ca setup
+  when:
+  - tls_enabled
+  - ca_role
+  include_tasks: "{{role_path}}/tasks/gen_ca.yml"
 
-- name: Home Dir Owner And Group
-  tags: ["deploy", "config", "ownergroup"]
+- name: signcert
+  when:
+  - tls_enabled
+  - signcert
+  include_tasks: "{{role_path}}/tasks/signcert.yml"
+
+- name: install and start embeded zookeeper
+  when: useEmbededZk
+  include_tasks: "{{role_path}}/tasks/install_embeded_zk.yml"
+
+- name: install and start kafka
+  include_tasks: "{{role_path}}/tasks/install_kafka.yml"
+
+- name: ensure home dir owner and group
   file:
     path: "{{home}}"
     state: directory
     owner: "{{user}}"
     group: "{{group}}"
     recurse: yes
-
-- name: Sudoer Rules
-  import_tasks: "{{role_path}}/tasks/sudorules.yml"
-
-- name: Service Start
-  tags: ["deploy", "start"]
-  when: start
-  systemd:
-    name: "{{systemd_name}}"
-    state: started
-    enabled: true
-    daemon_reload: true

@@ -1,0 +1,26 @@
+cluster.name: {{cluster_name}}
+node.name: {{inventory_hostname}}
+discovery.seed_hosts: [{% for host in ansible_play_hosts %}"{{hostvars[host].ansible_default_ipv4.address}}"{% if not loop.last %}, {% endif %}{% endfor +%}]
+
+{%- if bootstrap|lower == "true" +%}
+cluster.initial_master_nodes: [{% for host in ansible_play_hosts %}"{{host}}"{% if not loop.last %}, {% endif %}{% endfor +%}]
+{%- endif +%}
+
+{%- if action_auto_create_index +%}
+action.auto_create_index: {{action_auto_create_index}}
+{%- endif +%}
+network.host: {{ansible_default_ipv4.address}}
+
+{% if xpack_security_enabled|lower == "true" %}
+xpack.security.enabled: {{xpack_security_enabled|lower}}
+xpack.security.transport.ssl.enabled: true
+xpack.security.transport.ssl.verification_mode: certificate
+xpack.security.transport.ssl.client_authentication: required
+xpack.security.transport.ssl.keystore.path: elastic-certificates.p12
+xpack.security.transport.ssl.truststore.path: elastic-certificates.p12
+{% if httpssl|lower == "true" %}
+xpack.security.http.ssl.enabled: true
+xpack.security.http.ssl.keystore.path: http.p12
+{% endif %}
+{% endif %}
+

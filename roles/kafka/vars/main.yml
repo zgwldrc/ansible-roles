@@ -1,0 +1,101 @@
+---
+systemd_name: kafka
+systemd_short_name: kfk
+zk_systemd_name: zookeeper
+zk_systemd_short_name: zk
+
+uninstall: false
+scala_version: 2.13
+version: 3.5.1
+archive_file: "kafka_{{scala_version}}-{{version}}.tgz"
+urlpath: "https://archive.apache.org/dist/kafka/3.5.1/kafka_2.13-3.5.1.tgz"
+download_dest: "/tmp/{{archive_file}}"
+home: "/data/{{systemd_name}}/{{scala_version}}-{{version}}"
+# bk app user and group name
+user: "app_user"
+group: "app_group"
+java_home: /usr/lib/jvm/java-11-openjdk-amd64
+
+################################### global
+### KrafeMode
+kraft_mode: true
+# whether use builtin zookeeper server
+useEmbededZk: false
+
+### tls settings
+# if tls_enabled set to false, do not generate any tls relative stuffs
+tls_enabled: false
+# if set genkeystoreforce true, playbook will remove existing keystore before creating
+genkeystoreforce: false
+# signcert should be set to true only after ca setup
+# we need ca private key to signing other certs
+signcert: false
+
+################################## server keystore settings
+# define server keystore alias used in keytool command line
+keystore_alias: "mykey"
+# keystore validity in days
+validity: 36500
+# keystore password at least 6 chars length
+storepass: "123456"
+keystore_path: "{{home}}/tls/server.keystore.jks"
+certreq_path: "{{home}}/tls/server.certreq"
+## ca tls
+ca_alias: "myca"
+ca_common_name: "myca"
+ca_storepass: "123456"
+ca_keystore_path: "{{home}}/tls/ca.keystore.jks"
+ca_cert_path: "{{home}}/tls/ca.cert"
+## client tls
+cli_truststore_path: "{{home}}/tls/client.truststore.jks"
+cli_truststore_pass: "123456"
+
+################################## kafka server.properties settings
+
+# kafka common configs in all nodes, host specific configs defines in defaults
+# do not change the length of uuid
+kraft_cluter_uuid: PWbKe2u_SVqtorJpngRNqS
+reformat_store: false
+kafkaLogDir: "{{home}}/kafka-logs"
+inter_broker_listener_name: "PLAINTEXT"
+listener_security_protocol_map:
+  PLAINTEXT: PLAINTEXT
+  SSL: SSL
+  SASL_PLAINTEXT: SASL_PLAINTEXT
+  SASL_SSL: SASL_SSL
+  CONTROLLER: PLAINTEXT
+
+sasl_mechanism_inter_broker_protocol: "GSSAPI"
+sasl_enabled_mechanisms: "GSSAPI"
+
+kafka_heap_opts: "-Xmx1G -Xms1G"
+num_network_threads: 3
+num_io_threads: 8
+socket_send_buffer_bytes: 102400
+socket_receive_buffer_bytes: 102400
+socket_request_max_bytes: 104857600
+num_recovery_threads_per_data_dir: 1
+auto_create_topics_enable: true
+transaction_state_log_min_isr: 1
+
+log_retention_hours: 168
+log_retention_bytes: 0
+
+controller_listener_names:
+- CONTROLLER
+
+################################## zookeeper server settings
+# zookeeper.properties 
+zkDataDir: "{{home}}/zkDataDir"
+zkDataLogDir: "{{home}}/zkDataLogDir"
+zk_heap_opts: "-Xmx512m -Xms512m"
+
+############################### SASL
+# use sasl plain authentication mechanism
+_sasl_plain_enabled: false
+_sasl_plain_listener_name: "SASL_PLAINTEXT"
+_sasl_plain_username: admin
+_sasl_plain_password: admin
+_sasl_plain_users:
+  admin: admin
+  user1: user1

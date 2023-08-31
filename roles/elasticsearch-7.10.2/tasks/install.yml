@@ -11,6 +11,14 @@
     name: "{{group}}"
     state: present
 
+# for elasticsearch
+- name: Set vm.max_map_count to 262144 in sysctl
+  tags: ["deploy", "sysset"]
+  sysctl: name={{ item.key }} value={{ item.value }}
+  loop:
+    - { key: "vm.max_map_count", value: "262144" }
+    - { key: "fs.file-max", value: "65536" }
+
 - name: ensure home and relavtive dirs created
   tags: ["deploy", "home"]
   file:
@@ -63,7 +71,7 @@
 
   - name: sync to home dir
     synchronize:
-      src: "{{r_tempdir.path}}/kibana-{{version}}-linux-x86_64/"
+      src: "{{r_tempdir.path}}/elasticsearch-{{version}}/"
       dest: "{{home}}/"
     delegate_to: "{{ inventory_hostname }}"
 
@@ -81,15 +89,23 @@
   loop:
   - "{{systemd_name}}.service"
 
+- name: "Custom Jvm Options"
+  tags: ["deploy", "config", "jvmopt"]
+  template:
+    src: "{{item}}"
+    dest: "{{home}}/config/jvm.options.d/{{item}}"
+  loop:
+  - "heapsize.options"
+
 - name: "Config Files"
-  tags: ["deploy", "config", "kbnconfig"]
+  tags: ["deploy", "config", "esconfig"]
   template:
     src: "{{item}}"
     dest: "{{home}}/config/{{item}}"
   loop:
-  - "kibana.yml"
+  - "elasticsearch.yml"
   notify:
-  - restart service
+  - restart
 
 - name: Home Dir Owner And Group
   tags: ["deploy", "config", "ownergroup"]
@@ -102,6 +118,9 @@
 
 - name: Sudoer Rules
   import_tasks: "{{role_path}}/tasks/sudorules.yml"
+
+- name: Tls Setup  
+  import_tasks: "{{role_path}}/tasks/tptls.yml"
 
 - name: Service Start
   tags: ["deploy", "start"]

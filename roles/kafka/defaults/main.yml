@@ -1,0 +1,17 @@
+---
+# ca role define
+# when a node define ca_role is true, ca cert will be generated on that node
+ca_role: false
+# server tls host specific
+common_name: "{{inventory_hostname}}"
+dns_names: ["broker01.example.test"]
+
+# you must define process_roles vars in host_vars
+process_roles: ["broker", "controller"]
+
+listeners:
+- "PLAINTEXT://0.0.0.0:9092"
+- "CONTROLLER://0.0.0.0:9093"
+advertised_listeners:
+- "PLAINTEXT://{{ansible_default_ipv4.address}}:9092"
+

@@ -15,4 +15,5 @@ consul-agent-ca-key.pem
 roles/*/files
 roles/**/files/*
 Makefile
+.DS_Store
 

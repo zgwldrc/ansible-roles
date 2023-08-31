@@ -1,3 +1,0 @@
-{% if ES_JAVA_OPTS %}
-ES_JAVA_OPTS="{{ES_JAVA_OPTS}}"
-{% endif %}

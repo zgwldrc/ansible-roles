@@ -13,5 +13,12 @@ group: "appgroup"
 kafka_servers: 127.0.0.1:9092,127.0.0.2:9092,127.0.0.3:9092
 web_listen_address: 0.0.0.0:9102
 kafka_version: 2.0.0
+sasl_enabled: false
+sasl_username: ""
+sasl_password: ""
+# SASL mechanism can be plain, scram-sha512, scram-sha256
+sasl_mechanism: "plain"
+
+
 
 

@@ -1,12 +1,22 @@
-kafka 3.4.1
+kafka 2.4.1
 ===========
 
 scala 2.12 kafka 3.4.1 zookeeper 3.6.4
 
-Requirements
-------------
+Usage
+-----
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+first step gen ca and server certs, this will fetch ca keystore to same directory with playbook
+
+```
+ansible-playbook site.yml -K -i inventory.yml
+```
+
+step two sign server cert with ca
+
+```
+ansible-playbook site.yml -e signcert=true
+```
 
 Role Variables
 --------------
@@ -24,46 +34,37 @@ Example Playbook
 Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
 
 ```yaml
-- hosts: s234
+- hosts: s2,s3,s4
   remote_user: david
   become: true
   roles:
-  - role: zookeeper-3.7.1
+  - role: openjdk-17.0.1_linux-x64
     user: david
     group: david
-    java_home: /usr/lib/jvm/java-11-openjdk-amd64
+  
+  - role: kafka
+    scala_version: 2.13
+    version: 3.5.1
+    user: david
+    group: david
+    java_home: /usr/local/jdk/17.0.1
 
-  - role: kafka_2.12-3.5.0
-    user: david
-    group: david
-    java_home: /usr/lib/jvm/java-11-openjdk-amd64
 
 - hosts: s2
   remote_user: david
   become: true
-  roles:
   - role: kafka-exporter-1.7.0
     user: david
     group: david
-    kafka_servers: "{{hostvars['s2']['ansible_default_ipv4']['address']}}:9092,{{hostvars['s3']['ansible_default_ipv4']['address']}}:9092,{{hostvars['s4']['ansible_default_ipv4']['address']}}:9092"
-    kafka_version: 3.5.0
-```
-
-
-sasl config
------------
-
-```bash
-./kafka_exporter  --kafka.server=url:port \
-  --web.listen-address=:7071 \
-  --sasl.enabled \
-  --sasl.username="user" \
-  --sasl.password="password" \
-  --sasl.kerberos-auth-type="userAuth" \
-  --sasl.mechanism="scram-sha512" \
-  --tls.insecure-skip-tls-verify \
-  --tls.enabled \
-  --log.level=debug
+    kafka_version: 3.5.1
+    kafka_servers: "192.168.1.102:9092,192.168.1.103:9092,192.168.1.104:9092"
+  - role: kafka-ui-0.7.0
+    user: david
+    group: david
+    java_home: /usr/local/jdk/17.0.1
+    kui_server_port: 8090
+    kui_cluster_name: "s2,s3,s4"
+    kui_bootstrapServers: "192.168.1.102:9092,192.168.1.103:9092,192.168.1.104:9092
 ```
 
 License

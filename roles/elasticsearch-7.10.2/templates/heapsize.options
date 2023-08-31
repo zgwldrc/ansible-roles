@@ -1,0 +1,2 @@
+-Xms{{jvm_opt_xms}}
+-Xmx{{jvm_opt_xmx}}

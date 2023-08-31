@@ -1,0 +1,33 @@
+uninstall: false
+user: app_user
+group: app_group
+version: 7.10.2
+home: "/data/elasticsearch/{{version}}"
+archive_file: "elasticsearch-{{version}}-linux-x86_64.tar.gz"
+download_dest: "/tmp/{{archive_file}}"
+systemd_name: "elasticsearch"
+# used for service ctl alias commands
+# for example esstatus -> systemctl status elasticsearch.service
+systemd_name_short: "es"
+
+# cluster deploy control
+bootstrap: false
+httptls_sync: false
+httpssl: false
+start: start
+
+# ENV
+ES_JAVA_OPTS: ""
+
+# custom jvm options
+## head size
+jvm_opt_xms: 2g
+jvm_opt_xmx: 2g
+
+## elasticsearch.yml
+# xpack.security.enabled
+xpack_security_enabled: false
+# cluster.name
+cluster_name: "elasticsearch"
+# action.auto_create_index
+action_auto_create_index: .monitoring*,.watches,.triggered_watches,.watcher-history*,.ml*

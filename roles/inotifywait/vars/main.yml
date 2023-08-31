@@ -1,0 +1,18 @@
+user: "java_app"
+group: "appgroup"
+home: /data/scripts
+
+version: "0.0.1"
+systemd_name: "inotify-task-01"
+# 监测的目标文件
+file_path: "/path/to/file.txt"
+# 日志文件路径
+log_file: "/path/to/log.txt"
+
+
+version2: "0.0.1"
+systemd_name2: "tail-task-01"
+# 监测的目标文件
+file_path2: "/path/to/file.txt"
+# 日志文件路径
+log_file2: "/path/to/log.txt"

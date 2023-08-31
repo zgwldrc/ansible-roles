@@ -1,0 +1,1 @@
+ps -ef| grep -E 'org.apache.kafka.tools.(ProducerPerformance|ConsumerPerformance)' | awk '{print $2}' | xargs kill

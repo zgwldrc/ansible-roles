@@ -1,0 +1,55 @@
+- name: copy rpm file to remote
+  copy:
+    src: inotify-tools-3.14-9.el7.x86_64.rpm
+    dest: /tmp/inotify-tools-3.14-9.el7.x86_64.rpm
+    owner: "{{user}}"
+    group: "{{group}}"
+
+- name: yum install
+  yum:
+    name: /tmp/inotify-tools-3.14-9.el7.x86_64.rpm
+    state: present
+
+- name: home directory
+  file:
+    path: "{{home}}"
+    owner: "{{user}}"
+    group: "{{group}}"
+    state: directory
+
+- name: deploy {{item.dest}}
+  template:
+    src: "{{item.src}}"
+    dest: "{{home}}/{{item.dest}}.sh"
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop:
+  - {src: "monitor.sh", dest: "{{systemd_name}}"}
+  - {src: "monitor2.sh", dest: "{{systemd_name2}}"}
+
+- name: systemd unit file
+  template:
+    src: "{{item.src}}"
+    dest: /etc/systemd/system/{{item.dest}}.service
+  loop:
+  - {src: "systemd.service", dest: "{{systemd_name}}"}
+  - {src: "systemd2.service", dest: "{{systemd_name2}}"}
+
+- name: create logfile
+  file: 
+    path: "{{item}}"
+    owner: "{{user}}"
+    group: "{{group}}"
+    state: touch
+  loop:
+  - "{{log_file}}"
+  - "{{log_file2}}"
+- name: service enable
+  systemd:
+    name: "{{item}}"
+    state: started
+    enabled: true
+    daemon_reload: true
+  loop:
+  - "{{systemd_name}}"
+  - "{{systemd_name2}}"

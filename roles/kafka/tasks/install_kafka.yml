@@ -1,0 +1,172 @@
+- name: ensure dirs created
+  file:
+    path: "{{item}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop:
+    - "{{kafkaLogDir}}"
+
+- name: "Kafka Config"
+  block:
+  - name: "Systemd unit file generate"
+    template:
+      src: "{{item}}"
+      dest: "/etc/systemd/system/{{item}}"
+    loop:
+    - "kafka.service"
+
+  - name: Kafka Properties
+    template:
+      src: "server.properties"
+      dest: "{{home}}/config/server.properties"
+    notify:
+    - restart kafka service
+
+- name: Sudo Rules and Bashrc Alias For Kafka
+  block:
+  - name: add service control shortcuts commands
+    blockinfile:
+      path: "/home/{{user}}/.bashrc"
+      marker: "# {{item.long}} svcctl {mark} ANSIBLE MANAGED BLOCK"
+      block: |
+        alias {{item.short}}status='sudo systemctl status {{item.long}}.service'
+        alias {{item.short}}start='sudo systemctl start {{item.long}}.service'
+        alias {{item.short}}stop='sudo systemctl stop {{item.long}}.service'
+        alias {{item.short}}restart='sudo systemctl restart {{item.long}}.service'
+        alias {{item.short}}log='journalctl -u {{item.long}}.service -f -n 200 -o cat'
+      create: true
+      owner: "{{user}}"
+      group: "{{group}}"
+    loop:
+      - {"short": "kfk", "long": "kafka"}
+
+  - name: kafka shortcuts in bashrc
+    blockinfile:
+      path: "/home/{{user}}/.bashrc"
+      create: true
+      marker: "# kafka_shortcuts {mark} ANSIBLE MANAGED BLOCK"
+      owner: "{{user}}"
+      group: "{{group}}"
+      block: |
+        export BS="{% for host in ansible_play_hosts %}{{hostvars[host]['ansible_default_ipv4']['address']}}:9092{% if not loop.last %},{% endif %}{% endfor +%}"
+        alias kafka-acls="{{home}}/bin/kafka-acls.sh --bootstrap-server $BS"
+        alias kafka-broker-api-versions="{{home}}/bin/kafka-broker-api-versions.sh --bootstrap-server $BS"
+        alias kafka-configs="{{home}}/bin/kafka-configs.sh --bootstrap-server $BS"
+        alias kafka-console-consumer="{{home}}/bin/kafka-console-consumer.sh --bootstrap-server $BS"
+        alias kafka-console-producer="{{home}}/bin/kafka-console-producer.sh --bootstrap-server $BS"
+        alias kafka-consumer-groups="{{home}}/bin/kafka-consumer-groups.sh --bootstrap-server $BS"
+        alias kafka-consumer-perf-test="{{home}}/bin/kafka-consumer-perf-test.sh --bootstrap-server $BS"
+        alias kafka-delegation-tokens="{{home}}/bin/kafka-delegation-tokens.sh --bootstrap-server $BS"
+        alias kafka-delete-records="{{home}}/bin/kafka-delete-records.sh --bootstrap-server $BS"
+        alias kafka-dump-log="{{home}}/bin/kafka-dump-log.sh --bootstrap-server $BS"
+        alias kafka-log-dirs="{{home}}/bin/kafka-log-dirs.sh --bootstrap-server $BS"
+        alias kafka-mirror-maker="{{home}}/bin/kafka-mirror-maker.sh --bootstrap-server $BS"
+        alias kafka-preferred-replica-election="{{home}}/bin/kafka-preferred-replica-election.sh --bootstrap-server $BS"
+        alias kafka-producer-perf-test="{{home}}/bin/kafka-producer-perf-test.sh --bootstrap-server $BS"
+        alias kafka-reassign-partitions="{{home}}/bin/kafka-reassign-partitions.sh --bootstrap-server $BS"
+        alias kafka-replica-verification="{{home}}/bin/kafka-replica-verification.sh --bootstrap-server $BS"
+        alias kafka-run-class="{{home}}/bin/kafka-run-class.sh --bootstrap-server $BS"
+        alias kafka-server-start="{{home}}/bin/kafka-server-start.sh --bootstrap-server $BS"
+        alias kafka-server-stop="{{home}}/bin/kafka-server-stop.sh --bootstrap-server $BS"
+        alias kafka-streams-application-reset="{{home}}/bin/kafka-streams-application-reset.sh --bootstrap-server $BS"
+        alias kafka-topics="{{home}}/bin/kafka-topics.sh --bootstrap-server $BS"
+        alias kafka-verifiable-consumer="{{home}}/bin/kafka-verifiable-consumer.sh --bootstrap-server $BS"
+        alias kafka-verifiable-producer="{{home}}/bin/kafka-verifiable-producer.sh --bootstrap-server $BS"      
+
+  - name: add sudoers file
+    blockinfile:
+      path: "/etc/sudoers.d/{{user}}"
+      create: true
+      marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+      block: |
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl start {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl stop {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{item}}.service
+    loop:
+      - "kafka"
+
+  - name: sasl jaas config
+    when: _sasl_plain_enabled
+    template:
+      src: "{{item}}"
+      dest: "{{home}}/config/{{item}}"
+      owner: "{{user}}"
+      group: "{{group}}"
+    loop:
+    - kafka_server_jaas.conf
+    - consumer.properties
+    - producer.properties
+
+- name: perftest scripts
+  template:
+    src: "perftest/{{item}}"
+    dest: "/home/{{user}}/{{item}}"
+    owner: "{{user}}"
+    group: "{{group}}"
+    mode: 0755
+  loop:
+  - 1-topic-creation.sh
+  - 2-perftest-consumer.sh
+  - 3-perftest-producer.sh
+  - 4-stop-perftest.sh
+  - 5-consumer-clean.sh
+  - 6-topic-clean.sh
+  - 7-clean-files.sh
+  - consumer.sh
+  - producer.sh
+  - topic-clean-core.sh
+  - topic-creation-core.sh
+
+- name: reformat store
+  when: 
+  - kraft_mode
+  - reformat_store
+  block:
+  - systemd:
+      name: "{{systemd_name}}"
+      state: stopped
+  - file: 
+      path: "{{item}}"
+      state: absent
+    loop:
+    - /tmp/kraft_cluster_uuid
+    - "{{kafkaLogDir}}"
+  - file:
+      path: "{{item}}"
+      state: directory
+      owner: "{{user}}"
+      group: "{{group}}"
+    loop:
+      - "{{kafkaLogDir}}"
+  - systemd:
+      name: "{{systemd_name}}"
+      state: started      
+  
+
+- name: generate cluster uuid and run kafk-storage.sh
+  when:
+  - kraft_mode
+  shell: |
+    #export JAVA_HOME={{java_home}}
+    #uuid=`{{home}}/bin/kafka-storage.sh random-uuid | tee /tmp/kraft_cluster_uuid`
+    {{home}}/bin/kafka-storage.sh format -t {{kraft_cluter_uuid}} -c {{home}}/config/server.properties
+  args:
+    executable: /bin/bash
+    creates: /tmp/kraft_cluster_uuid
+  register: uuidgenerate
+
+- name: show uuidgenerate output
+  when:
+  - kraft_mode
+  - uuidgenerate is defined
+  debug: 
+    var: uuidgenerate.stdout_lines
+
+- name: Kafka Service Start
+  systemd:
+    name: "kafka"
+    state: started
+    enabled: true
+    daemon_reload: true  

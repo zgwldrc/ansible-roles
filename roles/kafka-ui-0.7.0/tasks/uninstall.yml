@@ -15,9 +15,9 @@
     path: "/etc/systemd/system/{{systemd_name}}.service"
     state: absent
 
-- name: add {{item}} shortcuts commands
+- name: remove {{item}} shortcuts commands
   blockinfile:
-    path: "{{user}}/.bashrc"
+    path: "/home/{{user}}/.bashrc"
     marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
     block: |
       alias {{item}}status='systemctl status {{item}}.service'

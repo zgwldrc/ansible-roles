@@ -1,8 +1,0 @@
----
-
-- name: uninstall
-  when: uninstall
-  include_tasks: "{{role_path}}/tasks/uninstall.yml"
-- name: install
-  when: not uninstall
-  include_tasks: "{{role_path}}/tasks/install.yml" 

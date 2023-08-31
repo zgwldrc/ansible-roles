@@ -1,0 +1,16 @@
+[Unit]
+Description="{{systemd_name2}} {{version2}}"
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+EnvironmentFile=-{{home}}/.env
+User={{user}}
+Group={{group}}
+WorkingDirectory={{home}}
+ExecStart=/bin/bash {{home}}/{{systemd_name2}}.sh
+Restart=on-failure
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
