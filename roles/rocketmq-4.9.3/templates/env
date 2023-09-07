@@ -1,3 +1,0 @@
-JAVA_HOME={{java_home}}
-PATH={{java_home}}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-JAVA_OPT={{java_opt}}

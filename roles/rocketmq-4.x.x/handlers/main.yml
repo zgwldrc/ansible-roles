@@ -1,0 +1,10 @@
+---
+- name: restart
+  systemd:
+    name: "{{systemd_name}}"
+    state: restarted
+
+- name: restart namesrv
+  systemd:
+    name: "{{namesrv_systemd_name}}"
+    state: restarted

@@ -3,7 +3,7 @@ node.name: {{inventory_hostname}}
 discovery.seed_hosts: [{% for host in ansible_play_hosts %}"{{hostvars[host].ansible_default_ipv4.address}}"{% if not loop.last %}, {% endif %}{% endfor +%}]
 
 {%- if bootstrap|lower == "true" +%}
-cluster.initial_master_nodes: [{% for host in ansible_play_hosts %}"{{host}}"{% if not loop.last %}, {% endif %}{% endfor +%}]
+cluster.initial_master_nodes: [{%- for host in (ansible_play_hosts | sort()) -%}{%- if 'master' in hostvars[host]['node_roles'] -%}{{host}}{% if not loop.last %},{% endif %}{%- endif -%}{%- endfor +%}]
 {%- endif +%}
 
 {%- if action_auto_create_index +%}

@@ -10,17 +10,19 @@
 
 - name: "Config"
   block:
-  - name: "Systemd unit file generate"
+  - name: "{{zk_systemd_name}} Systemd unit file generate"
     template:
-      src: "{{item}}"
-      dest: "/etc/systemd/system/{{item}}"
+      src: "{{item}}.service"
+      dest: "/etc/systemd/system/{{item}}.service"
     loop:
-    - "zookeeper.service"
+    - "{{zk_systemd_name}}"
 
   - name: Zookeeper Properties
     template:
       src: "zookeeper.properties"
       dest: "{{home}}/config/zookeeper.properties"
+      owner: "{{user}}"
+      group: "{{group}}"
 
   - name: Set Zookeeper myid
     template:
@@ -43,9 +45,9 @@
       owner: "{{user}}"
       group: "{{group}}"
     loop:
-      - {"short": "zk", "long": "zookeeper"}
+      - {"short": "{{zk_systemd_short_name}}", "long": "{{zk_systemd_name}}"}
 
-  - name: add sudoers file
+  - name: add {{zk_systemd_name}} sudoers file
     blockinfile:
       path: "/etc/sudoers.d/{{user}}"
       create: true
@@ -56,11 +58,11 @@
         {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{item}}.service
         {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{item}}.service
     loop:
-      - "zookeeper"
+      - "{{zk_systemd_name}}"
 
-- name: zookeeper Service Start
+- name: "{{zk_systemd_name}} Service Start"
   systemd:
-    name: "zookeeper"
+    name: "{{zk_systemd_name}}"
     state: started
     enabled: true
     daemon_reload: true

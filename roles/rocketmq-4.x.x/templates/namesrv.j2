@@ -1,0 +1,1 @@
+{%- for host in (ansible_play_hosts | sort()) -%}{%- if hostvars[host]['namesrv_enabled'] -%}{{hostvars[host]['ansible_default_ipv4']['address']}}:9876{% if not loop.last %};{% endif %}{%- endif -%}{%- endfor +%}

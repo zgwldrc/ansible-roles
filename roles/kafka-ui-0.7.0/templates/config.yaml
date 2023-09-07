@@ -1,0 +1,16 @@
+server.port: {{server_port}}
+kafka:
+  clusters:
+    - name: {{cluster_name}}
+      bootstrapServers: "{{bootstrapServers}}"
+      {% if sasl_enabled|lower == "true" %}
+      properties:
+        security.protocol: {{security_protocol}}
+        sasl.mechanism: {{sasl_mechanism}}
+        sasl.jaas.config: org.apache.kafka.common.security.plain.PlainLoginModule required username="{{_sasl_plain_username}}" password="{{_sasl_plain_password}}";
+      {% endif %}
+      {%- if metrics_port and metrics_type +%}
+      metrics:
+        port: {{metrics_port}}
+        type: {{metrics_type}}
+      {%- endif +%}

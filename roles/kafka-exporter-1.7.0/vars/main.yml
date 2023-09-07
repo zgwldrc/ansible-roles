@@ -1,14 +1,37 @@
 ---
-systemd_name: kafka-exporter
+#### general parameters
 uninstall: false
+systemd_name: kafka-exporter
+systemd_short_name: kex
 version: 1.7.0
 archive_file: "kafka_exporter-{{version}}.linux-amd64.tar.gz"
+unpacked_dirname: "kafka_exporter-{{version}}.linux-amd64"
+urlpath: "https://archive.apache.org/dist/kafka/3.5.1/kafka_2.13-3.5.1.tgz"
+# set single_exec_deploy true only when deploy single executable file , normaly we deploy a zip, tgz or tar.gz etc.
+single_exec_deploy: false
 download_dest: "/tmp/{{archive_file}}"
 home: "/data/{{systemd_name}}/{{version}}"
-exec_file: "{{home}}/kafka_exporter"
-# bk app user and group name
-user: "java_app"
-group: "appgroup"
+user: "app_user"
+group: "app_group"
+# define ExecStart and ExecStop in systemd unit file
+exec_start: "{{home}}/kafka_exporter"
+exec_stop: ""
+# systemd restart policy
+restart: "on-failure"
+home_subdirs: []
+# - bin
+# - var
+# - etc
+file_copies: []
+# file_copies:
+# - src: jmx_prometheus_javaagent-0.18.0.jar
+#   dest: "{{home}}/bin/jmx_prometheus_javaagent-0.18.0.jar"
+
+config_files:
+- src: systemd.service
+  dest: /etc/systemd/system/{{systemd_name}}.service
+- src: "env"
+  dest: "{{home}}/.env"
 
 kafka_servers: 127.0.0.1:9092,127.0.0.2:9092,127.0.0.3:9092
 web_listen_address: 0.0.0.0:9102
@@ -18,7 +41,3 @@ sasl_username: ""
 sasl_password: ""
 # SASL mechanism can be plain, scram-sha512, scram-sha256
 sasl_mechanism: "plain"
-
-
-
-

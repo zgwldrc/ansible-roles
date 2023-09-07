@@ -1,101 +1,130 @@
 ---
-- name: user create
+- name: User Create
   user:
     name: "{{user}}"
     state: present
 
-- name: group create
+- name: Group Create
   group:
     name: "{{group}}"
     state: present
 
-- name: ensure home and relavtive dirs created
-  file:
-    path: "{{item}}"
-    state: directory
-    owner: "{{user}}"
-    group: "{{group}}"
-  loop:
-    - "{{home}}"
-
-- name: Environement File
-  template:
-    src: env
-    dest: "{{home}}/.env"
-
-- name: systemd unit file generation
-  template:
-    src: unitfile.service
-    dest: "/etc/systemd/system/{{systemd_name}}.service"
-
-- name: "Download"
+- name: Download
   block:
-  - name: check if downloaded
+  - name: "Check If Downloaded"
     stat:
       path: "{{download_dest}}"
-    register: downloaded  
-  - name: download from ansible control node
-    when: not downloaded.stat.exists
+    register: downloaded
+  - name: "Downloading"
+    when: 
+    - not downloaded.stat.exists
     copy:
       src: "{{archive_file}}"
       dest: "{{download_dest}}"
+      owner: "{{user}}"
+      group: "{{group}}"
 
-- name: "Deploy"
+- name: Deploy
+  when:
+  - downloaded.stat.exists
   block:
-  - name: check if deployed already
+  - name: Check if deployed already
     stat:
-      path: "{{exec_file}}"
+      path: "{{home}}"
     register: deployed
-  - name: create temp dir
-    when: not deployed.stat.exists
-    tempfile:
+
+  - name: Single Exec Deploy
+    when:
+    - single_exec_deploy
+    - not deployed.stat.exists
+    block:
+    - name: "Home Dir"
+      file:
+        path: "{{home}}"
+        state: directory
+        owner: "{{user}}"
+        group: "{{group}}"
+    - name: Copy Single Exec File To Home
+      copy:
+        src: "{{download_dest}}"
+        dest: "{{home}}/"
+        owner: "{{user}}"
+        group: "{{group}}"
+        mode: u+x
+        remote_src: true
+    
+  - name: "Package Deploy"
+    when: 
+    - not deployed.stat.exists
+    - not single_exec_deploy
+    block:
+    - name: "Home Dir"
+      file:
+        path: "{{home}}"
+        state: directory
+        owner: "{{user}}"
+        group: "{{group}}"
+
+    - name: create temp dir
+      tempfile:
+        state: directory
+      register: r_tempdir
+
+    - name: unarchive
+      unarchive:
+        src: "{{download_dest}}"
+        dest: "{{r_tempdir.path}}"
+        remote_src: yes
+
+    - name: sync to home dir
+      synchronize:
+        src: "{{r_tempdir.path}}/{{unpacked_dirname}}/"
+        dest: "{{home}}/"
+      delegate_to: "{{ inventory_hostname }}"
+
+    - name: clean temp dir
+      when: r_tempdir is defined
+      file: 
+        path: "{{r_tempdir.path}}"
+        state: absent
+  
+  - name: "Sub Dir Under Home"
+    file:
+      path: "{{home}}/{{item}}"
       state: directory
-    register: r_tempdir
-  - name: unarchive
-    when: not deployed.stat.exists
-    unarchive:
-      src: "{{download_dest}}"
-      dest: "{{r_tempdir.path}}"
-      remote_src: yes
-  - name: sync to home dir
-    when: not deployed.stat.exists
-    synchronize:
-      src: "{{r_tempdir.path}}/kafka_exporter-{{version}}.linux-amd64/"
-      dest: "{{home}}/"
-    delegate_to: "{{ inventory_hostname }}"
-  - name: clean temp dir
-    when: not deployed.stat.exists
-    file: 
-      path: "{{r_tempdir.path}}"
-      state: absent
+      owner: "{{user}}"
+      group: "{{group}}"
+    loop: "{{home_subdirs}}"
 
-- name: ensure home dir owner and group
-  file:
-    path: "{{home}}"
-    state: directory
+- name: "Config {{item.dest}} Generating "
+  template:
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
     owner: "{{user}}"
-    group: "{{group}}"
-    recurse: yes
+    group: "{{group}}"    
+  loop: "{{config_files}}"
+  notify:
+  - restart
 
-- name: Sudo Rules and Bashrc Alias For Kafka
+- name: Sudo Rules And Bashrc Alias
   block:
-  - name: add service control shortcuts commands
+  - name: Add Service Control Shortcuts Commands
     blockinfile:
       path: "/home/{{user}}/.bashrc"
-      marker: "# {{item}} svcctl {mark} ANSIBLE MANAGED BLOCK"
+      marker: "# {{item.long}} svcctl {mark} ANSIBLE MANAGED BLOCK"
       block: |
-        alias {{item}}status='sudo systemctl status {{item}}.service'
-        alias {{item}}start='sudo systemctl start {{item}}.service'
-        alias {{item}}stop='sudo systemctl stop {{item}}.service'
-        alias {{item}}restart='sudo systemctl restart {{item}}.service'
-        alias {{item}}log='journalctl -u {{item}}.service -f -n 200 -o cat'
+        alias {{item.short}}status='sudo systemctl status {{item.long}}.service'
+        alias {{item.short}}start='sudo systemctl start {{item.long}}.service'
+        alias {{item.short}}stop='sudo systemctl stop {{item.long}}.service'
+        alias {{item.short}}restart='sudo systemctl restart {{item.long}}.service'
+        alias {{item.short}}log='journalctl -u {{item.long}}.service -f -n 200 -o cat'
       create: true
       owner: "{{user}}"
       group: "{{group}}"
     loop:
-      - "{{systemd_name}}"
+      - {"short": "{{systemd_short_name}}", "long": "{{systemd_name}}"}
 
-  - name: add sudoers file
+  - name: Add Sudoers Rules
     blockinfile:
       path: "/etc/sudoers.d/{{user}}"
       create: true
@@ -108,9 +137,29 @@
     loop:
       - "{{systemd_name}}"
 
-- name: "{{systemd_name}} Service Start" 
+- name: File Copy Tasks
+  when:
+  - file_copies
+  copy:
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop: "{{file_copies}}"
+
+- name: Ensure Home Dir Owner And Group
+  file:
+    path: "{{home}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+    recurse: yes
+
+- name: Service Start
   systemd:
     name: "{{systemd_name}}"
     state: started
     enabled: true
     daemon_reload: true  
+
+

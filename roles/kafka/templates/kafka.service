@@ -1,5 +1,5 @@
 [Unit]
-Description="kafka {{version}}"
+Description="{{systemd_name}} {{version}}"
 Requires=network-online.target
 After=network-online.target
 
@@ -12,8 +12,11 @@ Environment="KAFKA_HEAP_OPTS={{kafka_heap_opts}}"
 User={{user}}
 Group={{group}}
 WorkingDirectory={{home}}
-ExecStart={{home}}/bin/kafka-server-start.sh {{home}}/config/server.properties
-Restart=on-failure
+ExecStart={{exec_start}}
+{% if exec_stop %}
+ExecStop={{exec_stop}}
+{% endif %}
+Restart={{restart}}
 LimitNOFILE=65536
 
 [Install]

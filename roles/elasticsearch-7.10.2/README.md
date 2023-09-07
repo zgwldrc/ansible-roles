@@ -22,7 +22,7 @@ inventory="hosts.yaml"
 # 发现 自举
 ansible-playbook -i $inventory $playbook -K -e bootstrap=true
 # 取消自举 并启用安全
-ansible-playbook -i $inventory $playbook -K -e bootstrap=false -e xpack_security_enabled=true
+ansible-playbook -i $inventory $playbook -K -e xpack_security_enabled=true
 
 # uninstall
 ansible-playbook -i $inventory $playbook -K -e uninstall=true

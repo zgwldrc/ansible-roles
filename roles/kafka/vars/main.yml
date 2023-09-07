@@ -1,20 +1,43 @@
 ---
+uninstall: false
 systemd_name: kafka
 systemd_short_name: kfk
 zk_systemd_name: zookeeper
 zk_systemd_short_name: zk
-
-uninstall: false
 scala_version: 2.13
 version: 3.5.1
 archive_file: "kafka_{{scala_version}}-{{version}}.tgz"
+unpacked_dirname: "kafka_{{scala_version}}-{{version}}"
 urlpath: "https://archive.apache.org/dist/kafka/3.5.1/kafka_2.13-3.5.1.tgz"
+single_exec_deploy: false
 download_dest: "/tmp/{{archive_file}}"
 home: "/data/{{systemd_name}}/{{scala_version}}-{{version}}"
-# bk app user and group name
 user: "app_user"
 group: "app_group"
-java_home: /usr/lib/jvm/java-11-openjdk-amd64
+# define ExecStart and ExecStop in systemd unit file
+exec_start: "{{home}}/bin/kafka-server-start.sh {{home}}/config/server.properties"
+exec_stop: ""
+zk_exec_start: "{{home}}/bin/zookeeper-server-start.sh {{home}}/config/zookeeper.properties"
+zk_exec_stop: ""
+# systemd restart policy
+restart: "on-failure"
+zk_restart: "on-failure"
+
+home_subdirs:
+- tls
+- logs
+- config
+- scripts
+file_copies: []
+# file_copies:
+# - src: jmx_prometheus_javaagent-0.18.0.jar
+#   dest: "{{home}}/bin/jmx_prometheus_javaagent-0.18.0.jar"
+
+config_files: 
+- src: "env"
+  dest: "{{home}}/.env"       
+
+java_home: ""
 
 ################################### global
 ### KrafeMode

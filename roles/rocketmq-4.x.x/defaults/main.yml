@@ -1,0 +1,9 @@
+namesrv_enabled: false
+brokerName: "broker-a"
+# -1 master
+brokerId: -1
+# 指定当前broker为异步复制master,
+# - ASYNC_MASTER 异步复制Master 
+# - SYNC_MASTER 同步双写Master 
+# - SLAVE 从
+brokerRole: ASYNC_MASTER

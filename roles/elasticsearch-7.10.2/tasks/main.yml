@@ -7,6 +7,7 @@
   - not uninstall
   - not httptls_sync
   import_tasks: "{{role_path}}/tasks/install.yml"
+
 - name: httptls
   when: httptls_sync
-  import_tasks: "{{role_path}}/tasks/httptls.yml"
+  include_tasks: "{{role_path}}/tasks/httptls.yml"

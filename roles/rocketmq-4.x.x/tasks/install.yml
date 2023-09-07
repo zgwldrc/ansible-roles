@@ -1,0 +1,215 @@
+---
+- name: User Create
+  user:
+    name: "{{user}}"
+    state: present
+
+- name: Group Create
+  group:
+    name: "{{group}}"
+    state: present
+
+- name: Download
+  block:
+  - name: "Check If Downloaded"
+    stat:
+      path: "{{download_dest}}"
+    register: downloaded
+  - name: "Downloading"
+    when: 
+    - not downloaded.stat.exists
+    copy:
+      src: "{{archive_file}}"
+      dest: "{{download_dest}}"
+      owner: "{{user}}"
+      group: "{{group}}"
+
+- name: Deploy
+  block:
+  - name: Check if deployed already
+    stat:
+      path: "{{home}}"
+    register: deployed
+
+  - name: Single Exec Deploy
+    when:
+    - single_exec_deploy
+    - not deployed.stat.exists
+    block:
+    - name: "Home Dir"
+      file:
+        path: "{{home}}"
+        state: directory
+        owner: "{{user}}"
+        group: "{{group}}"
+    - name: Copy Single Exec File To Home
+      copy:
+        src: "{{download_dest}}"
+        dest: "{{home}}/"
+        owner: "{{user}}"
+        group: "{{group}}"
+        mode: u+x
+        remote_src: true
+    
+  - name: "Package Deploy"
+    when: 
+    - not deployed.stat.exists
+    - not single_exec_deploy
+    block:
+    - name: "Home Dir"
+      file:
+        path: "{{home}}"
+        state: directory
+        owner: "{{user}}"
+        group: "{{group}}"
+
+    - name: create temp dir
+      tempfile:
+        state: directory
+      register: r_tempdir
+
+    - name: unarchive
+      unarchive:
+        src: "{{download_dest}}"
+        dest: "{{r_tempdir.path}}"
+        remote_src: yes
+
+    - name: sync to home dir
+      synchronize:
+        src: "{{r_tempdir.path}}/{{unpacked_dirname}}/"
+        dest: "{{home}}/"
+      delegate_to: "{{ inventory_hostname }}"
+
+    - name: clean temp dir
+      when: r_tempdir is defined
+      file: 
+        path: "{{r_tempdir.path}}"
+        state: absent
+  
+  - name: "Sub Dir Under Home"
+    file:
+      path: "{{home}}/{{item}}"
+      state: directory
+      owner: "{{user}}"
+      group: "{{group}}"
+    loop: "{{home_subdirs}}"
+
+- name: "Config {{item.dest}} Generating "
+  template:
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
+    owner: "{{user}}"
+    group: "{{group}}"    
+  loop: "{{config_files}}"
+  notify:
+  - restart
+
+- name: Sudo Rules And Bashrc Alias
+  block:
+  - name: Add {{namesrv_systemd_name}} Service Control Shortcuts Commands
+    when:
+    - namesrv_enabled
+    blockinfile:
+      path: "/home/{{user}}/.bashrc"
+      marker: "# {{item.long}} svcctl {mark} ANSIBLE MANAGED BLOCK"
+      block: |
+        alias {{item.short}}status='sudo systemctl status {{item.long}}.service'
+        alias {{item.short}}start='sudo systemctl start {{item.long}}.service'
+        alias {{item.short}}stop='sudo systemctl stop {{item.long}}.service'
+        alias {{item.short}}restart='sudo systemctl restart {{item.long}}.service'
+        alias {{item.short}}log='journalctl -u {{item.long}}.service -f -n 200 -o cat'
+      create: true
+      owner: "{{user}}"
+      group: "{{group}}"
+    loop:
+      - {"short": "{{namesrv_systemd_short_name}}", "long": "{{namesrv_systemd_name}}"}
+
+  - name: Add {{namesrv_systemd_name}} Sudoers Rules
+    when:
+    - namesrv_enabled
+    blockinfile:
+      path: "/etc/sudoers.d/{{user}}"
+      create: true
+      marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+      block: |
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl start {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl stop {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{item}}.service
+    loop:
+      - "{{namesrv_systemd_name}}"
+
+  - name: Add Service Control Shortcuts Commands
+    blockinfile:
+      path: "/home/{{user}}/.bashrc"
+      marker: "# {{item.long}} svcctl {mark} ANSIBLE MANAGED BLOCK"
+      block: |
+        alias {{item.short}}status='sudo systemctl status {{item.long}}.service'
+        alias {{item.short}}start='sudo systemctl start {{item.long}}.service'
+        alias {{item.short}}stop='sudo systemctl stop {{item.long}}.service'
+        alias {{item.short}}restart='sudo systemctl restart {{item.long}}.service'
+        alias {{item.short}}log='journalctl -u {{item.long}}.service -f -n 200 -o cat'
+      create: true
+      owner: "{{user}}"
+      group: "{{group}}"
+    loop:
+      - {"short": "{{systemd_short_name}}", "long": "{{systemd_name}}"}
+
+  - name: Add Sudoers Rules
+    blockinfile:
+      path: "/etc/sudoers.d/{{user}}"
+      create: true
+      marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+      block: |
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl start {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl stop {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{item}}.service
+    loop:
+      - "{{systemd_name}}"
+
+- name: File Copy Tasks
+  when:
+  - file_copies
+  copy:
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop: "{{file_copies}}"
+
+- name: Ensure Home Dir Owner And Group
+  file:
+    path: "{{home}}"
+    state: directory
+    owner: "{{user}}"
+    group: "{{group}}"
+    recurse: yes
+
+- name: "{{namesrv_systemd_name}} Service Start"
+  when:
+  - namesrv_enabled
+  systemd:
+    name: "{{namesrv_systemd_name}}"
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: "{{namesrv_systemd_name}} Service Disabled"
+  when:
+  - not namesrv_enabled
+  systemd:
+    name: "{{namesrv_systemd_name}}"
+    state: stopped
+    enabled: false
+    masked: true
+    daemon_reload: true
+
+- name: Service Start
+  systemd:
+    name: "{{systemd_name}}"
+    state: started
+    enabled: true
+    daemon_reload: true
+
+

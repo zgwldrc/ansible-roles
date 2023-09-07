@@ -1,0 +1,131 @@
+---
+#### general parameters
+uninstall: false
+user: "app_user"
+group: "app_group"
+systemd_name: rmq_broker
+systemd_short_name: brk
+namesrv_systemd_name: rmq_namesrv
+namesrv_systemd_short_name: nam
+version: 4.9.3
+archive_file: "rocketmq-all-4.9.3-bin-release.zip"
+unpacked_dirname: "rocketmq-{{version}}"
+urlpath: "https://archive.apache.org/dist/rocketmq/4.9.3/rocketmq-all-4.9.3-bin-release.zip"
+# set single_exec_deploy true only when deploy single executable file , normaly we deploy a zip, tgz or tar.gz etc.
+single_exec_deploy: false
+download_dest: "/tmp/{{archive_file}}"
+home: "/data/rocketmq/{{version}}"
+# define ExecStart and ExecStop in systemd unit file
+exec_start: "{{ home }}/bin/mqbroker -c {{ home }}/conf/broker.conf"
+exec_stop: "{{ home }}/bin/mqshutdown broker"
+# systemd restart policy
+restart: "on-failure"
+home_subdirs: []
+# - bin
+# - var
+# - etc
+
+#### extended parameters
+
+java_home: "/usr/local/jdk11"
+namesrv_exec_start: "{{ home }}/bin/mqnamesrv"
+namesrv_exec_stop: "{{ home }}/bin/mqshutdown namesrv"
+# systemd restart policy
+namesrv_restart: "on-failure"
+
+jmx_prometheus_javaagent_port: 32345
+jmx_prometheus_javaagent_version: 0.18.0
+jmx_prometheus_javaagent_bin: "{{home}}/bin/jmx_prometheus_javaagent-{{jmx_prometheus_javaagent_version}}.jar"
+javaagent_opt: "{{jmx_prometheus_javaagent_bin}}={{jmx_prometheus_javaagent_port}}:{{home}}/conf/jmx_prometheus_javaagent_config.yaml"
+
+# Memory
+broker_xms: 5g
+broker_xmx: 5g
+broker_MaxDirectMemorySize: 2G
+namesrv_xms: 512m
+namesrv_xmx: 512m
+namesrv_xmn: 256m
+
+file_copies:
+- src: jmx_prometheus_javaagent-0.18.0.jar
+  dest: "{{home}}/bin/jmx_prometheus_javaagent-0.18.0.jar"
+
+config_files:
+- src: broker.service
+  dest: /etc/systemd/system/{{systemd_name}}.service
+- src: namesrv.service
+  dest: /etc/systemd/system/{{namesrv_systemd_name}}.service
+- src: "env"
+  dest: "{{home}}/.env"
+- src: broker.conf
+  dest: "{{home}}/conf/broker.conf"
+- src: "jmx_prometheus_javaagent_config.yaml"
+  dest: "{{home}}/conf/jmx_prometheus_javaagent_config.yaml"
+- src: "runbroker.sh"
+  dest: "{{home}}/bin/runbroker.sh"
+- src: "runserver.sh"
+  dest: "{{home}}/bin/runserver.sh"
+- src: "logback_broker.xml"
+  dest: "{{home}}/conf/logback_broker.xml"
+- src: "logback_namesrv.xml"
+  dest: "{{home}}/conf/logback_broker.xml"
+- src: "logback_tools.xml"
+  dest: "{{home}}/conf/logback_broker.xml"
+
+# broker.conf
+# 指定整个broker集群的名称，或者说是RocketMQ集群的名称
+brokerClusterName: "DefaultCluster"
+# 指定删除消息存储过期文件的时间为凌晨4点
+deleteWhen: "04;06;10;13"
+# 指定刷盘策略为异步刷盘
+# - ASYNC_FLUSH 异步刷盘
+# - SYNC_FLUSH 同步刷盘
+flushDiskType: "ASYNC_FLUSH"
+# 指定Broker对外提供服务的端口，即Broker与producer与consumer通信的端口。默认 10911。
+listenPort: 10911
+haListenPort: 10912
+# 新建Topic所创建的队列数
+defaultTopicQueueNums: 16
+# 是否允许 Broker 自动创建Topic，建议生产环境中关闭
+autoCreateTopicEnable: false
+# 是否允许 Broker 自动创建订阅组，建议生产环境中关闭
+autoCreateSubscriptionGroup: true
+# 指定未发生新的消息存储文件的保留时长x小时，x小时后过期，将会被删除
+fileReservedTime: 48
+# 指定commitLog目录中每个文件的大小，默认1G
+mapedFileSizeCommitLog: 1073741824
+# 指定ConsumeQueue的每个Topic的每个Queue文件中可以存放的消息数量，默认30w条
+mapedFileSizeConsumeQueue: 300000
+# 指定commitlog、consumequeue所在磁盘分区的最大使用，超过该值，则需立即清除过期文件
+diskMaxUsedSpaceRatio: 80
+# 在清除过期文件时，如果该文件被其他线程所占用（引用数大于0，比如读取消息），此时会阻止 此次删除任务，同时在第一次试图删除该文件时记录当前时间戳。
+# 该属性则表示从第一次拒绝删除 后开始计时，该文件最多可以保留的时长。在此时间内若引用数仍不为0，则删除仍会被拒绝。不过 时间到后，文件将被强制删除 
+# destroyMapedFileIntervalForcibly=120000
+
+# 指定存储位置
+storePathRootDir: "{{home}}/store"
+# commitLog目录路径
+storePathCommitLog: "{{home}}/store/commitlog"
+# 消费队列存储路径存储路径
+storePathConsumeQueue: "{{home}}/store/consumequeue"
+# 消息索引存储路径
+storePathIndex: "{{home}}/store/index"
+# checkpoint 文件存储路径
+storeCheckpoint: "{{home}}/store/checkpoint"
+# abort 文件存储路径
+abortFile: "{{home}}/store/abort"
+
+# 指定消息的最大大小 默认4M 变量默认0时则配置文件中不配置此选项
+maxMessageSize: 0
+# 发消息线程池数量 变量默认0时则配置文件中不配置此选项
+sendMessageThreadPoolNums: 0
+# 拉消息线程池数量 变量默认0时则配置文件中不配置此选项
+pullMessageThreadPoolNums: 0
+# 是否使用可重入锁 变量默认false时则配置文件中不配置此选项
+useReentrantLockWhenPutMessage: false
+# 本地事务自查最大次数 变量默认0时则配置文件中不配置此选项
+transactionCheckMax: 0
+# 指定两次删除 commitLog 的间隔时间(ms)，这里默认0值则不会在配置文件中显式配置，从而让rocketmq使用内置默认值100ms
+deleteCommitLogFilesInterval: 300
+# 指定两次删除 ConsumeQueue 的间隔时间(ms), 这里默认0值则不会在配置文件中显式配置，从而让rocketmq使用内置默认值100ms
+deleteConsumeQueueFilesInterval: 300

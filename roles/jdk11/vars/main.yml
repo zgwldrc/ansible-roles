@@ -1,0 +1,29 @@
+---
+#### general parameters
+uninstall: false
+systemd_name: jdk
+systemd_short_name: jdk
+version: 11.0.10
+archive_file: "jdk11.tgz"
+unpacked_dirname: "jdk-{{version}}"
+urlpath: "https://d6.injdk.cn/openjdk/openjdk/17/openjdk-17.0.1_linux-x64_bin.tar.gz"
+# set single_exec_deploy true only when deploy single executable file , normaly we deploy a zip, tgz or tar.gz etc.
+single_exec_deploy: false
+download_dest: "/tmp/{{archive_file}}"
+home: "/data/{{systemd_name}}/{{version}}"
+user: "app_user"
+group: "app_group"
+home_subdirs:
+- bin
+file_copies: []
+# file_copies:
+# - src: jmx_prometheus_javaagent-0.18.0.jar
+#   dest: "{{home}}/bin/jmx_prometheus_javaagent-0.18.0.jar"
+
+config_files: []
+# - src: systemd.service
+#   dest: /etc/systemd/system/{{systemd_name}}.service
+# - src: "env"
+#   dest: "{home}/.env"
+# - src: config.yaml
+#   dest: "{{home}}/conf/config.yaml"
