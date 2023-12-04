@@ -16,10 +16,9 @@ exec: "{{bin_dir}}/clash"
 # if exec_link is true , exec will be linked to exec_link_path
 exec_link: true
 exec_link_path: "/usr/sbin/clash"
+
 user: clash
 group: clash
-
-
 # app config
 allow_lan: false
 secret: ""
