@@ -1,0 +1,5 @@
+---
+- name: remove home dir
+  file:
+    path: "{{home}}"
+    state: absent

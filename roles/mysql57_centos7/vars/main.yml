@@ -1,0 +1,35 @@
+---
+#### general parameters
+uninstall: false
+systemd_name: mysqld
+systemd_short_name: mysqld
+version: 5.7.44
+archive_file: "mysql-5.7.44-1.el7.x86_64.rpm-bundle.tar"
+unpacked_dirname: ""
+urlpath: "https://archive.apache.org/dist/kafka/3.5.1/kafka_2.13-3.5.1.tgz"
+# set single_exec_deploy true only when deploy single executable file , normaly we deploy a zip, tgz or tar.gz etc.
+single_exec_deploy: false
+download_dest: "/tmp/{{archive_file}}"
+home: "/data/{{systemd_name}}/{{version}}"
+user: "mysql"
+group: "mysql"
+
+config_files:
+- src: my.cnf
+  dest: "{{home}}/my.cnf"
+- src: my.cnf
+  dest: "/etc/my.cnf"
+- src: mysql_logrotate
+  dest: /etc/logrotate.d/mysql
+
+home_subdirs:
+- data
+- logs
+
+initialize: true
+root_passwd: "root"
+# my.cnf
+innodb_buffer_pool_size: 128M
+datadir: "{{home}}/data"
+log_error: "{{home}}/logs/mysqld.log"
+pid_file: "{{home}}/mysqld.pid"

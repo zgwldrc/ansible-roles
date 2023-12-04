@@ -1,0 +1,20 @@
+[Unit]
+Description="{{namesrv_systemd_name}} {{version}}"
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+EnvironmentFile=-{{home}}/.env
+PassEnvironment=JAVA_HOME PATH
+User={{user}}
+Group={{group}}
+WorkingDirectory={{home}}
+ExecStart={{namesrv_exec_start}}
+{% if namesrv_exec_stop %}
+ExecStop={{namesrv_exec_stop}}
+{% endif %}
+Restart={{namesrv_restart}}
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

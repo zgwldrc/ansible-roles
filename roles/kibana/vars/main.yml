@@ -1,0 +1,25 @@
+systemd_name: "kibana"
+# used for service ctl alias commands
+# for example {{systemd_name_short}}status -> systemctl status {{systemd_name}}.service
+systemd_name_short: "kbn"
+# whether start service after deploying
+start: true
+uninstall: false
+user: app_user
+group: app_group
+version: 7.10.2
+home: "/data/{{systemd_name}}/{{version}}"
+archive_file: "{{systemd_name}}-{{version}}-linux-x86_64.tar.gz"
+archive_url: https://artifacts.elastic.co/downloads/kibana/kibana-7.10.2-linux-x86_64.tar.gz
+download_dest: "/tmp/{{archive_file}}"
+
+## kibana.yml
+# Specifies the address to which the Kibana server will bind.
+server_host: 0.0.0.0
+# The Kibana server's name.  This is used for display purposes.
+server_name: ""
+# elasticsearch.hosts
+elasticsearch_hosts: ["https://localhost:9200"]
+elasticsearch_username: "kibana_system"
+elasticsearch_password: ""
+elasticsearch_ssl_certificateAuthorities: []

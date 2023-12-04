@@ -1,0 +1,66 @@
+- name: ca cert and key
+  tags: ["deploy", "tptls", "catls"]
+  when: 
+  - "'ca' in node_roles"
+  - xpack_security_enabled
+  shell: |
+    ./bin/elasticsearch-certutil ca --pass "" --out "{{home}}/config/elastic-stack-ca.p12"
+  args:
+    executable: /bin/bash
+    chdir: "{{home}}"
+    creates: "{{home}}/config/elastic-stack-ca.p12"
+
+- name: node cert and key
+  tags: ["deploy", "tptls", "nodetls"]
+  when: 
+  - "'ca' in node_roles"
+  - xpack_security_enabled
+  shell: |
+    ./bin/elasticsearch-certutil cert \
+    --ca {{home}}/config/elastic-stack-ca.p12 \
+    --ca-pass "" \
+    --out {{home}}/config/elastic-certificates.p12 \
+    --pass ""
+  args:
+    executable: /bin/bash
+    chdir: "{{home}}"
+    creates: "{{home}}/config/elastic-certificates.p12"
+
+- name: change owner and group of p12
+  tags: ["deploy", "tptls", "tptlsperm"]
+  when: 
+  - "'ca' in node_roles"
+  - xpack_security_enabled
+  file:
+    path: "{{item}}"
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop:
+  - "{{home}}/config/elastic-stack-ca.p12"
+  - "{{home}}/config/elastic-certificates.p12"
+
+- name: fetch nodecert file from ca node to local
+  tags: ["deploy", "tptls"]
+  when:
+  - "'ca' in node_roles"
+  - xpack_security_enabled
+  fetch:
+    src: "{{home}}/config/elastic-certificates.p12"
+    dest: "{{playbook_dir}}/elastic-certificates.p12"
+    flat: true
+
+- name: copy node cert to non-ca nodes
+  tags: ["deploy", "tptls"]
+  when:
+  - "'ca' not in node_roles"
+  - xpack_security_enabled
+  copy: 
+    src: "{{playbook_dir}}/elastic-certificates.p12"
+    dest: "{{home}}/config/elastic-certificates.p12"
+    owner: "{{user}}"
+    group: "{{group}}"
+
+   
+
+
+  

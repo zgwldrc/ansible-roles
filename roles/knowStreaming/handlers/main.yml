@@ -1,0 +1,5 @@
+---
+# - name: restart
+#   systemd:
+#     name: "{{systemd_name}}"
+#     state: restarted

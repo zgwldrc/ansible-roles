@@ -1,0 +1,31 @@
+---
+#### general parameters
+uninstall: false
+user: "app_user"
+group: "app_group"
+systemd_name: jmx_prometheus_javaagent
+systemd_short_name: jmx_prometheus_javaagent
+version: 0.18.0
+
+urlpath: "https://archive.apache.org/dist/kafka/3.5.1/kafka_2.13-3.5.1.tgz"
+archive_file: "jmx_prometheus_javaagent-{{version}}.jar"
+download_dest: "/tmp/{{archive_file}}"
+# 通过此标记表明是否为单个可执行文件的部署，二进制部署方式通常部署都是压缩包，解压后会得到多个文件及目录
+# 若为单文件部署，部署具体细节会有一些差异
+single_exec_deploy: true
+
+# 解压包后得到的单个目录名称，若解压后并非一个目录而是多个零散的文件，此值可以设置为空字符串
+# 当single_exec_deploy为true时，此设置将忽略
+unpacked_dirname: "demo1-{{version}}"
+
+home: "/data/{{systemd_name}}/{{version}}"
+home_subdirs:
+- bin
+- conf
+# - etc
+# 设置一个可执行文件的绝对路径，用于判断是否已经部署
+exec_file: "{{home}}/bin/{{archive_file}}"
+
+config_files:
+- src: jmx_prometheus_javaagent_config.yaml
+  dest: "{{home}}/conf/jmx_prometheus_javaagent_config.yaml"

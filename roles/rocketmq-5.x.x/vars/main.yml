@@ -1,0 +1,139 @@
+---
+#### general parameters
+uninstall: false
+user: "app_user"
+group: "app_group"
+skip_handlers: false
+# define service state after deloy
+# possible values: started, stopped, restarted, reloaded
+# https://docs.ansible.com/ansible/latest/collections/ansible/builtin/systemd_service_module.html#parameter-state
+service_state: started
+
+systemd_name: rocketmq
+systemd_short_name: brk
+namesrv_systemd_name: rocketmq-namesrv
+namesrv_systemd_short_name: nam
+version: 5.1.4
+archive_file: "rocketmq-all-{{version}}-bin-release.zip"
+unpacked_dirname: "rocketmq-all-{{version}}-bin-release"
+urlpath: "https://dist.apache.org/repos/dist/release/rocketmq/5.1.4/rocketmq-all-5.1.4-bin-release.zip"
+# set single_exec_deploy true only when deploy single executable file , normaly we deploy a zip, tgz or tar.gz etc.
+single_exec_deploy: false
+download_dest: "/tmp/{{archive_file}}"
+home: "/data/{{systemd_name}}/{{version}}"
+home_subdirs:
+- store-namesrv
+file_copies: []
+exec_file: "{{home}}/bin/mqbroker"
+# define ExecStart and ExecStop in systemd unit file
+exec_start: "{{ home }}/bin/mqbroker -c {{ home }}/conf/broker.conf"
+exec_stop: "{{ home }}/bin/mqshutdown broker"
+# systemd restart policy
+restart: "on-failure"
+
+namesrv_exec_start: "{{ home }}/bin/mqnamesrv -c {{ home }}/conf/namesrv.conf"
+namesrv_exec_stop: "{{ home }}/bin/mqshutdown namesrv"
+# systemd restart policy
+namesrv_restart: "on-failure"
+
+#### extended parameters
+java_home: "/data/jdk/11.0.10"
+
+jmx_prometheus_javaagent_version: 0.18.0
+jmx_prometheus_javaagent_home: /data/jmx_prometheus_javaagent/{{jmx_prometheus_javaagent_version}}
+jmx_prometheus_javaagent_bin: "{{jmx_prometheus_javaagent_home}}/bin/jmx_prometheus_javaagent-{{jmx_prometheus_javaagent_version}}.jar"
+
+jmx_prometheus_javaagent_port: 9103
+javaagent_opt: "{{jmx_prometheus_javaagent_bin}}={{jmx_prometheus_javaagent_port}}:{{jmx_prometheus_javaagent_home}}/conf/jmx_prometheus_javaagent_config.yaml"
+
+namesrv_jmx_prometheus_javaagent_port: 9104
+namesrv_javaagent_opt: "{{jmx_prometheus_javaagent_bin}}={{namesrv_jmx_prometheus_javaagent_port}}:{{jmx_prometheus_javaagent_home}}/conf/jmx_prometheus_javaagent_config.yaml"
+
+# Memory
+broker_xms: 2g
+broker_xmx: 2g
+broker_MaxDirectMemorySize: 1G
+namesrv_xms: 256m
+namesrv_xmx: 256m
+namesrv_xmn: 128m
+
+file_copies: []
+
+config_files:
+- src: broker.service
+  dest: /etc/systemd/system/{{systemd_name}}.service
+- src: namesrv.service
+  dest: /etc/systemd/system/{{namesrv_systemd_name}}.service
+- src: "env"
+  dest: "{{home}}/.env"
+- src: broker.conf
+  dest: "{{home}}/conf/broker.conf"
+- src: namesrv.conf
+  dest: "{{home}}/conf/namesrv.conf"  
+- src: "runbroker.sh"
+  dest: "{{home}}/bin/runbroker.sh"
+- src: "runserver.sh"
+  dest: "{{home}}/bin/runserver.sh"
+- src: "logback_broker.xml"
+  dest: "{{home}}/conf/logback_broker.xml"
+- src: "logback_namesrv.xml"
+  dest: "{{home}}/conf/logback_namesrv.xml"
+- src: "logback_tools.xml"
+  dest: "{{home}}/conf/logback_tools.xml"
+
+# broker.conf
+# 指定整个broker集群的名称，或者说是RocketMQ集群的名称
+brokerClusterName: "DefaultCluster"
+brokerRole: SLAVE
+# 指定删除消息存储过期文件的时间为凌晨4点
+deleteWhen: "04;12;20"
+# 指定刷盘策略为异步刷盘
+# - ASYNC_FLUSH 异步刷盘
+# - SYNC_FLUSH 同步刷盘
+flushDiskType: "ASYNC_FLUSH"
+# 指定Broker对外提供服务的端口，即Broker与producer与consumer通信的端口。默认 10911。
+listenPort: 10911
+haListenPort: 10912
+enableControllerMode: true
+# 若该值为 true，则一条消息需要复制到 SyncStateSet 中的每一个副本才会向客户端返回成功，可以保证消息不丢失。默认为 false
+allAckInSyncStateSet: false
+# 需保持同步的副本组数量，默认为1，allAckInSyncStateSet=true 时该参数无效
+inSyncReplicas: 1
+minInSyncReplicas: 1
+storePathEpochFile: "{{home}}/store/epochfile"
+# syncBrokerMetadataPeriod：向 controller 同步 Broker 副本信息的时间间隔。默认 5000（5s）。
+syncBrokerMetadataPeriod: 3000
+# checkSyncStateSetPeriod：检查 SyncStateSet 的时间间隔，检查 SyncStateSet 可能会 shrink SyncState。默认5000（5s）。
+checkSyncStateSetPeriod: 3000
+# syncControllerMetadataPeriod：同步 controller 元数据的时间间隔，主要是获取 active controller 的地址。默认10000（10s）。
+syncControllerMetadataPeriod: 6000
+
+# 其他配置
+# 新建Topic所创建的队列数
+defaultTopicQueueNums: 16
+# 是否允许 Broker 自动创建Topic，建议生产环境中关闭
+autoCreateTopicEnable: false
+# 是否允许 Broker 自动创建订阅组，建议生产环境中关闭
+autoCreateSubscriptionGroup: true
+# 指定未发生新的消息存储文件的保留时长x小时，x小时后过期，将会被删除
+fileReservedTime: 48
+# 指定commitLog目录中每个文件的大小，默认1G
+mapedFileSizeCommitLog: 1073741824
+# 指定ConsumeQueue的每个Topic的每个Queue文件中可以存放的消息数量，默认30w条
+mapedFileSizeConsumeQueue: 300000
+# 指定commitlog、consumequeue所在磁盘分区的最大使用，超过该值，则需立即清除过期文件
+diskMaxUsedSpaceRatio: 80
+# 在清除过期文件时，如果该文件被其他线程所占用（引用数大于0，比如读取消息），此时会阻止 此次删除任务，同时在第一次试图删除该文件时记录当前时间戳。
+# 该属性则表示从第一次拒绝删除 后开始计时，该文件最多可以保留的时长。在此时间内若引用数仍不为0，则删除仍会被拒绝。不过 时间到后，文件将被强制删除 
+destroyMapedFileIntervalForcibly: 120000
+
+# 指定存储位置
+storePathRootDir: "{{home}}/store"
+# commitLog目录路径
+storePathCommitLog: "{{home}}/store/commitlog"
+# 指定消息的最大大小 默认4M
+maxMessageSize: 10485760
+# 发消息线程池数量 
+sendMessageThreadPoolNums: 128
+# 拉消息线程池数量
+pullMessageThreadPoolNums: 128

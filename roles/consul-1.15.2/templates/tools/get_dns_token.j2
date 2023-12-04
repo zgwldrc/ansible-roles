@@ -1,0 +1,5 @@
+{%- for host in (ansible_play_hosts | sort()) -%}
+{%- if 'ca' in hostvars[host]['agent_role'] -%}
+{{hostvars[host]['DNSToken']['stdout']}}
+{%- endif -%}
+{%- endfor +%}

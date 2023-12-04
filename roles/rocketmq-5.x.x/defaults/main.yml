@@ -1,0 +1,9 @@
+rocketmq_role: ["broker", "namesrv", "controller"]
+brokerName: "broker-a"
+brokerId: 0
+# 5.1版本启用控制器模式时此配置无效
+# 指定当前broker为异步复制master,
+# - ASYNC_MASTER 异步复制Master 
+# - SYNC_MASTER 同步双写Master 
+# - SLAVE 从
+brokerRole: ASYNC_MASTER

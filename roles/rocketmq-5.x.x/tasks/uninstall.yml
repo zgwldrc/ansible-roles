@@ -1,0 +1,95 @@
+---
+- name: stop {{systemd_name}} service
+  when: ("broker" in rocketmq_role) | lower == "true"
+  systemd:
+    name: "{{systemd_name}}"
+    state: stopped
+  ignore_errors: true
+- name: stop {{namesrv_systemd_name}} service
+  when: ("namesrv" in rocketmq_role) | lower == "true"
+  systemd:
+    name: "{{namesrv_systemd_name}}"
+    state: stopped
+  ignore_errors: true
+
+- name: remove home dir
+  file:
+    path: "{{home}}"
+    state: absent
+
+- name: remove {{systemd_name}} systemd unit file
+  when: ("broker" in rocketmq_role) | lower == "true"
+  file:
+    path: "/etc/systemd/system/{{systemd_name}}.service"
+    state: absent
+- name: remove {{namesrv_systemd_name}} systemd unit file
+  when: ("namesrv" in rocketmq_role) | lower == "true"
+  file:
+    path: "/etc/systemd/system/{{namesrv_systemd_name}}.service"
+    state: absent
+
+- name: remove service control shortcuts commands
+  when: ("broker" in rocketmq_role) | lower == "true"
+  blockinfile:
+    path: "/home/{{user}}/.bashrc"
+    marker: "# {{item.long}} svcctl {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      alias {{item.short}}status='sudo systemctl status {{item.long}}.service'
+      alias {{item.short}}start='sudo systemctl start {{item.long}}.service'
+      alias {{item.short}}stop='sudo systemctl stop {{item.long}}.service'
+      alias {{item.short}}restart='sudo systemctl restart {{item.long}}.service'
+      alias {{item.short}}log='journalctl -u {{item.long}}.service -f -n 200 -o cat'
+    create: true
+    owner: "{{user}}"
+    group: "{{group}}"
+    state: absent
+  loop:
+  - {"short": "{{systemd_short_name}}", "long": "{{systemd_name}}"}
+
+- name: remove sudo rules
+  when: ("broker" in rocketmq_role) | lower == "true"
+  blockinfile:
+    path: "/etc/sudoers.d/{{user}}"
+    create: true
+    marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+    state: absent
+    block: |
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl start {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl stop {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{item}}.service
+  loop:
+    - "{{systemd_name}}"
+
+- name: remove service control shortcuts commands
+  when: ("broker" in rocketmq_role) | lower == "true"
+  blockinfile:
+    path: "/home/{{user}}/.bashrc"
+    marker: "# {{item.long}} svcctl {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      alias {{item.short}}status='sudo systemctl status {{item.long}}.service'
+      alias {{item.short}}start='sudo systemctl start {{item.long}}.service'
+      alias {{item.short}}stop='sudo systemctl stop {{item.long}}.service'
+      alias {{item.short}}restart='sudo systemctl restart {{item.long}}.service'
+      alias {{item.short}}log='journalctl -u {{item.long}}.service -f -n 200 -o cat'
+    create: true
+    owner: "{{user}}"
+    group: "{{group}}"
+    state: absent
+  loop:
+  - {"short": "{{namesrv_systemd_short_name}}", "long": "{{namesrv_systemd_name}}"}
+
+- name: remove sudo rules
+  when: ("namesrv" in rocketmq_role) | lower == "true"
+  blockinfile:
+    path: "/etc/sudoers.d/{{user}}"
+    create: true
+    marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+    state: absent
+    block: |
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl start {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl stop {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{item}}.service
+      {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{item}}.service
+  loop:
+    - "{{namesrv_systemd_name}}" 

@@ -1,0 +1,52 @@
+---
+#### general parameters
+uninstall: false
+systemd_name: knowstreaming
+systemd_short_name: ks
+version: 3.3.0
+archive_file: "KnowStreaming-3.3.0.tar.gz"
+unpacked_dirname: "KnowStreaming"
+# 下载地址
+urlpath: "https://s3-gzpu.didistatic.com/pub/knowstreaming/KnowStreaming-3.3.0.tar.gz"
+# set single_exec_deploy true only when deploy single executable file , normaly we deploy a zip, tgz or tar.gz etc.
+single_exec_deploy: false
+download_dest: "/tmp/{{archive_file}}"
+home: "/data/{{systemd_name}}/{{version}}"
+user: "app_user"
+group: "app_group"
+# define ExecStart and ExecStop in systemd unit file
+exec_start: "{{home}}/bin/startup.sh"
+exec_stop: ""
+# systemd restart policy
+restart: "on-failure"
+home_subdirs: []
+# - bin
+# - var
+# - etc
+file_copies: []
+# file_copies:
+# - src: jmx_prometheus_javaagent-0.18.0.jar
+#   dest: "{{home}}/bin/jmx_prometheus_javaagent-0.18.0.jar"
+
+config_files:
+- src: systemd.service
+  dest: /etc/systemd/system/{{systemd_name}}.service
+- src: "env"
+  dest: "{{home}}/.env"
+- src: startup.sh
+  dest: "{{home}}/bin/startup.sh"
+- src: application.yml
+  dest: "{{home}}/conf/application.yml"
+- src: sql_init.sh
+  dest: "{{home}}/bin/sql_init.sh"
+- src: estemp_create.sh
+  dest: "{{home}}/init/template/estemp_create.sh"
+
+# app env config
+java_home: ""
+application_db_user: ""
+application_db_pass: ""
+application_db_name: "know_streaming"
+application_es_addr: ["127.0.0.1:9200"]
+esaddr: 127.0.0.1
+esport: 9200

@@ -1,0 +1,6 @@
+{%- for host in (ansible_play_hosts | sort()) -%}
+{%- if 'controller' in hostvars[host]['rocketmq_role'] -%}
+{{"ctl{}-{}:9878".format(loop.index - 1, hostvars[host]['ansible_default_ipv4']['address'])}}
+{%- if not loop.last %};{% endif %}
+{%- endif -%}
+{%- endfor +%}

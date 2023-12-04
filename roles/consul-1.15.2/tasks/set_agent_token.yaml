@@ -1,0 +1,22 @@
+- name: Set BS Token
+  set_fact:
+    bstoken: "{{ lookup('template', 'templates/tools/get_bs_token.j2') }}"
+
+- name: "export token in bashrc"
+  lineinfile:
+    path: /home/{{user}}/.bashrc
+    regexp: 'export CONSUL_HTTP_TOKEN=(.*)'
+    line: "export CONSUL_HTTP_TOKEN=\"{{bstoken}}\""
+    create: true
+    owner: "{{user}}"
+    group: "{{group}}"
+
+- name: "Assign tokens to the server agent"
+  shell: |
+    consul acl set-agent-token default {{ lookup('template', 'templates/tools/get_dns_token.j2') }}
+    consul acl set-agent-token agent {{ lookup('template', 'templates/tools/get_server_token.j2') }}
+  args:
+    executable: /bin/bash
+    chdir: "{{CONSUL_TOKEN_DIR}}"
+  environment:
+    CONSUL_HTTP_TOKEN: "{{bstoken}}"
