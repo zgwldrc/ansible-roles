@@ -3,80 +3,91 @@
 uninstall: false
 user: "app_user"
 group: "app_group"
-systemd_name: rmq_broker
+skip_handlers: false
+# define service state after deloy
+# possible values: started, stopped, restarted, reloaded
+# https://docs.ansible.com/ansible/latest/collections/ansible/builtin/systemd_service_module.html#parameter-state
+service_state: started
+systemd_name: rocketmq-broker
 systemd_short_name: brk
-namesrv_systemd_name: rmq_namesrv
+namesrv_systemd_name: rocketmq-namesrv
 namesrv_systemd_short_name: nam
 version: 4.9.3
-archive_file: "rocketmq-all-4.9.3-bin-release.zip"
-unpacked_dirname: "rocketmq-{{version}}"
-urlpath: "https://archive.apache.org/dist/rocketmq/4.9.3/rocketmq-all-4.9.3-bin-release.zip"
+archive_file: "rocketmq-all-{{version}}-bin-release.zip"
+unpacked_dirname: "rocketmq-all-{{version}}-bin-release"
+urlpath: "https://archive.apache.org/dist/rocketmq/{{version}}/rocketmq-all-{{version}}-bin-release.zip"
 # set single_exec_deploy true only when deploy single executable file , normaly we deploy a zip, tgz or tar.gz etc.
 single_exec_deploy: false
 download_dest: "/tmp/{{archive_file}}"
 home: "/data/rocketmq/{{version}}"
-# define ExecStart and ExecStop in systemd unit file
-exec_start: "{{ home }}/bin/mqbroker -c {{ home }}/conf/broker.conf"
-exec_stop: "{{ home }}/bin/mqshutdown broker"
-# systemd restart policy
-restart: "on-failure"
 home_subdirs: []
 # - bin
 # - var
 # - etc
-
-#### extended parameters
-
-java_home: "/usr/local/jdk11"
+file_copies: []
+exec_file: "{{home}}/bin/mqbroker"
+# define ExecStart and ExecStop in systemd unit file
+exec_start: "{{ home }}/bin/mqbroker -c {{ home }}/conf/broker.conf"
+exec_stop: "{{ home }}/bin/mqshutdown broker"
 namesrv_exec_start: "{{ home }}/bin/mqnamesrv"
 namesrv_exec_stop: "{{ home }}/bin/mqshutdown namesrv"
 # systemd restart policy
+restart: "on-failure"
 namesrv_restart: "on-failure"
 
-jmx_prometheus_javaagent_port: 32345
+#### extended parameters
+java_home: "/data/jdk/11.0.10"
+
+# common jmx prometheus java agent settings
 jmx_prometheus_javaagent_version: 0.18.0
-jmx_prometheus_javaagent_bin: "{{home}}/bin/jmx_prometheus_javaagent-{{jmx_prometheus_javaagent_version}}.jar"
-javaagent_opt: "{{jmx_prometheus_javaagent_bin}}={{jmx_prometheus_javaagent_port}}:{{home}}/conf/jmx_prometheus_javaagent_config.yaml"
+jmx_prometheus_javaagent_home: /data/jmx_prometheus_javaagent/{{jmx_prometheus_javaagent_version}}
+jmx_prometheus_javaagent_bin: "{{jmx_prometheus_javaagent_home}}/bin/jmx_prometheus_javaagent-{{jmx_prometheus_javaagent_version}}.jar"
+
+# broker jmx prometheus java agent settings
+jmx_prometheus_javaagent_port: 9103
+javaagent_opt: "{{jmx_prometheus_javaagent_bin}}={{jmx_prometheus_javaagent_port}}:{{jmx_prometheus_javaagent_home}}/conf/jmx_prometheus_javaagent_config.yaml"
+
+# namesrv jmx prometheus java agent settings
+namesrv_jmx_prometheus_javaagent_port: 9104
+namesrv_javaagent_opt: "{{jmx_prometheus_javaagent_bin}}={{namesrv_jmx_prometheus_javaagent_port}}:{{jmx_prometheus_javaagent_home}}/conf/jmx_prometheus_javaagent_config.yaml"
 
 # Memory
-broker_xms: 5g
-broker_xmx: 5g
-broker_MaxDirectMemorySize: 2G
-namesrv_xms: 512m
-namesrv_xmx: 512m
-namesrv_xmn: 256m
-
-file_copies:
-- src: jmx_prometheus_javaagent-0.18.0.jar
-  dest: "{{home}}/bin/jmx_prometheus_javaagent-0.18.0.jar"
+broker_xms: 2g
+broker_xmx: 2g
+broker_MaxDirectMemorySize: 1G
+namesrv_xms: 256m
+namesrv_xmx: 256m
+namesrv_xmn: 128m
 
 config_files:
-- src: broker.service
-  dest: /etc/systemd/system/{{systemd_name}}.service
-- src: namesrv.service
-  dest: /etc/systemd/system/{{namesrv_systemd_name}}.service
 - src: "env"
   dest: "{{home}}/.env"
+- src: "logback_tools.xml"
+  dest: "{{home}}/conf/logback_tools.xml"
+
+broker_config_files:
+- src: broker.service
+  dest: /etc/systemd/system/{{systemd_name}}.service
 - src: broker.conf
   dest: "{{home}}/conf/broker.conf"
-- src: "jmx_prometheus_javaagent_config.yaml"
-  dest: "{{home}}/conf/jmx_prometheus_javaagent_config.yaml"
 - src: "runbroker.sh"
   dest: "{{home}}/bin/runbroker.sh"
-- src: "runserver.sh"
-  dest: "{{home}}/bin/runserver.sh"
 - src: "logback_broker.xml"
   dest: "{{home}}/conf/logback_broker.xml"
+
+namesrv_config_files:
+- src: namesrv.service
+  dest: /etc/systemd/system/{{namesrv_systemd_name}}.service
+- src: "runserver.sh"
+  dest: "{{home}}/bin/runserver.sh"
 - src: "logback_namesrv.xml"
-  dest: "{{home}}/conf/logback_broker.xml"
-- src: "logback_tools.xml"
-  dest: "{{home}}/conf/logback_broker.xml"
+  dest: "{{home}}/conf/logback_namesrv.xml"
 
 # broker.conf
 # 指定整个broker集群的名称，或者说是RocketMQ集群的名称
 brokerClusterName: "DefaultCluster"
 # 指定删除消息存储过期文件的时间为凌晨4点
-deleteWhen: "04;06;10;13"
+deleteWhen: "04;12;20"
 # 指定刷盘策略为异步刷盘
 # - ASYNC_FLUSH 异步刷盘
 # - SYNC_FLUSH 同步刷盘

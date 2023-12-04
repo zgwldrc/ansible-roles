@@ -1,37 +1,62 @@
 ---
-# vars file for consul-1.14.3
-systemd_name: consul
 uninstall: false
+systemd_name: consul
+systemd_short_name: csl
 version: 1.15.2
-zipfile: "consul_{{version}}_linux_amd64.zip"
-urlpath: "https://releases.hashicorp.com/consul/{{version}}/{{zipfile}}"
-s3_url: ""
-download_dest: "/tmp/{{zipfile}}"
+archive_file: "consul_{{version}}_linux_amd64.zip"
+unpacked_dirname: ""
+urlpath: "https://releases.hashicorp.com/consul/1.15.2/consul_1.15.2_linux_amd64.zip"
+# set single_exec_deploy true only when deploy single executable file , normaly we deploy a zip, tgz or tar.gz etc.
+single_exec_deploy: false
+download_dest: "/tmp/{{archive_file}}"
 home: "/data/{{systemd_name}}/{{version}}"
 user: consul
 group: consul
-agent_role: ["server"]
-bootstrap: false
-unzip_installed: true
+# define ExecStart and ExecStop in systemd unit file
+exec_start: "{{home}}/consul agent -node={{node_name}} -config-dir={{home}}/conf/"
+exec_stop: ""
+# systemd restart policy
+restart: "on-failure"
 
+home_subdirs:
+- "data"
+- "conf/policies"
+- "conf/tokens"
+- "logs"
+file_copies: []
+# file_copies:
+# - src: jmx_prometheus_javaagent-0.18.0.jar
+#   dest: "{{home}}/bin/jmx_prometheus_javaagent-0.18.0.jar"
+
+config_files:
+- src: systemd.service
+  dest: /etc/systemd/system/{{systemd_name}}.service
+
+bootstrap: false
 CONSUL_DATA_DIR: "{{home}}/data"
+CONSUL_LOG_DIR: "{{home}}/logs"
 CONSUL_CONFIG_DIR: "{{home}}/conf"
 CONSUL_POLICY_DIR: "{{CONSUL_CONFIG_DIR}}/policies"
 CONSUL_TOKEN_DIR: "{{CONSUL_CONFIG_DIR}}/tokens"
-DATACENTER: dc1
+DATACENTER: korea
 DOMAIN: consul
-
-# used for retry_join, for client find server
-SERVER_NAME: consul
-FQDN_SUFFIX: ""
-CONSUL_HTTP_ADDR: "https://CONSUL_ADDRESS:8443"
-CONSUL_HTTP_SSL: true
-CONSUL_CACERT: "{{CONSUL_CONFIG_DIR}}/consul-agent-ca.pem"
-CONSUL_TLS_SERVER_NAME: "server.{{DATACENTER}}.{{DOMAIN}}"
-CONSUL_HTTP_TOKEN: ""
 
 # server config template vars
 # https://developer.hashicorp.com/consul/tutorials/production-deploy/deployment-guide#server-specific-configuration
+#### agent-server-log.hcl
+# The level of logging to show after the Consul agent has started. 
+# This defaults to "info". The available log levels are "trace", "debug", "info", "warn", and "error".
+log_level: info
+log_file: "{{CONSUL_LOG_DIR}}/"
+log_rotate_duration: "24h"
+log_rotate_bytes: 0
+# to specify the maximum number of older log file archives to keep.
+log_rotate_max_files: 7
+log_json: false
+# This flag enables logging to syslog.
+enable_syslog: false
+syslog_facility: LOCAL0
+
 #### agent-server-acl.hcl
 default_token: ""
 #### policies/acl-policy-server-node.hcl
@@ -40,7 +65,7 @@ node_prefix: ""
 node_name: "{{inventory_hostname}}"
 server: true
 bootstrap_expect: 1
-datacenter: "dc1"
+datacenter: "{{DATACENTER}}"
 client_addr: "127.0.0.1"
 ui_enabled: true
 

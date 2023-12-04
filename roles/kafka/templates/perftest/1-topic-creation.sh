@@ -8,8 +8,8 @@ pa=(3 6 9)
 n=3
 
 # topic replication factor in each topic group
-r=3
+r={{ansible_play_hosts|length}}
 
 for p in ${pa[@]};do
-  ./topic-creation-core.sh 1 $n $p $r
+  ./topic-creation-core.sh $p $r $n
 done

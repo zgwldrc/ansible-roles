@@ -11,7 +11,8 @@ process_roles: ["broker", "controller"]
 
 listeners:
 - "PLAINTEXT://0.0.0.0:9092"
-- "CONTROLLER://0.0.0.0:9093"
+#- "CONTROLLER://0.0.0.0:9093"
+
 advertised_listeners:
 - "PLAINTEXT://{{ansible_default_ipv4.address}}:9092"
 

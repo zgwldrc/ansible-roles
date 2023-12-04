@@ -1,5 +1,5 @@
-Role Name
-=========
+Consul
+======
 
 A brief description of the role goes here.
 
@@ -21,11 +21,53 @@ A list of other roles hosted on Galaxy should go here, plus any details in regar
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+host_vars/h1.yml
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+```yaml
+agent_role: ["ca","server"]
+```
+
+host_vars/h2.yml
+
+```yaml
+agent_role: ["server"]
+```
+
+host_vars/h3.yml
+
+```yaml
+agent_role: ["server"]
+```
+
+deploy.yml
+
+```yaml
+- hosts: consul_cluster
+  remote_user: ec2-user
+  become: true
+  roles:
+  - role: consul-1.15.1
+    user: java_app
+    group: appgroup
+  
+```
+
+ops.sh
+
+```bash
+#!/bin/bash
+alias ap='ansible-playbook'
+pb='your/playbook/path'
+keyfile='~/.ssh/id_rsa
+inventory='your inventory file path'
+export ANSIBLE_ROLES_PATH="your roles path"
+# install
+ap -K -i $inventory --key-file $keyfile $pb
+ap -K -i $inventory --key-file $keyfile $pb -e bootstrap=true
+# uninstall
+ap -K -i $inventory --key-file $keyfile $pb -e uninstall=true
+
+```
 
 License
 -------

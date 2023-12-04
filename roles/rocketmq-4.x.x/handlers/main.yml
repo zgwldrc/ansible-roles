@@ -1,10 +1,16 @@
 ---
 - name: restart
+  when:
+    - skip_handlers | default("false") | lower == "false"
+    - ("broker" in rocketmq_role) | lower == "true"
   systemd:
     name: "{{systemd_name}}"
     state: restarted
 
 - name: restart namesrv
+  when:
+    - skip_handlers | default("false") | lower == "false"
+    - ("namesrv" in rocketmq_role) | lower == "true"
   systemd:
     name: "{{namesrv_systemd_name}}"
     state: restarted

@@ -1,19 +1,25 @@
 ---
 uninstall: false
+user: "app_user"
+group: "app_group"
+skip_handlers: false
+# define service state after deloy
+# possible values: started, stopped, restarted, reloaded
+# https://docs.ansible.com/ansible/latest/collections/ansible/builtin/systemd_service_module.html#parameter-state
+service_state: started
 systemd_name: kafka
 systemd_short_name: kfk
 zk_systemd_name: zookeeper
 zk_systemd_short_name: zk
 scala_version: 2.13
-version: 3.5.1
-archive_file: "kafka_{{scala_version}}-{{version}}.tgz"
-unpacked_dirname: "kafka_{{scala_version}}-{{version}}"
+app_version: 3.5.1
+archive_file: "kafka_{{scala_version}}-{{app_version}}.tgz"
+unpacked_dirname: "kafka_{{scala_version}}-{{app_version}}"
 urlpath: "https://archive.apache.org/dist/kafka/3.5.1/kafka_2.13-3.5.1.tgz"
 single_exec_deploy: false
 download_dest: "/tmp/{{archive_file}}"
-home: "/data/{{systemd_name}}/{{scala_version}}-{{version}}"
-user: "app_user"
-group: "app_group"
+home: "/data/{{systemd_name}}/{{scala_version}}-{{app_version}}"
+
 # define ExecStart and ExecStop in systemd unit file
 exec_start: "{{home}}/bin/kafka-server-start.sh {{home}}/config/server.properties"
 exec_stop: ""
@@ -28,22 +34,42 @@ home_subdirs:
 - logs
 - config
 - scripts
-file_copies: []
-# file_copies:
-# - src: jmx_prometheus_javaagent-0.18.0.jar
-#   dest: "{{home}}/bin/jmx_prometheus_javaagent-0.18.0.jar"
+
+file_copies:
+- src: jmx_prometheus_javaagent-{{jmx_prometheus_javaagent_version}}.jar
+  dest: "{{home}}/bin/jmx_prometheus_javaagent-{{jmx_prometheus_javaagent_version}}.jar"
 
 config_files: 
 - src: "env"
   dest: "{{home}}/.env"       
-
+- src: "zkenv"
+  dest: "{{home}}/.zkenv"
 java_home: ""
 
 ################################### global
+
 ### KrafeMode
-kraft_mode: true
+kraft_mode: false
 # whether use builtin zookeeper server
-useEmbededZk: false
+useEmbededZk: true
+
+### JMX
+jmx_enabled: true
+jmx_system_properties:
+- com.sun.management.jmxremote
+- com.sun.management.jmxremote.authenticate=false
+- com.sun.management.jmxremote.ssl=false
+- java.rmi.server.hostname={{ansible_default_ipv4.address}}
+jmx_port: 12345
+
+### JMX Prometheus Java Agent
+jmx_prometheus_javaagent_version: 0.18.0
+jmx_prometheus_javaagent_home: /data/jmx_prometheus_javaagent/{{jmx_prometheus_javaagent_version}}
+jmx_prometheus_javaagent_home_subdirs: ["conf", "bin"]
+jmx_prometheus_javaagent_bin: "{{jmx_prometheus_javaagent_home}}/bin/jmx_prometheus_javaagent-{{jmx_prometheus_javaagent_version}}.jar"
+
+jmx_prometheus_javaagent_port: 9103
+javaagent_opt: "{{jmx_prometheus_javaagent_bin}}={{jmx_prometheus_javaagent_port}}:{{jmx_prometheus_javaagent_home}}/conf/jmx_prometheus_javaagent_config.yaml"
 
 ### tls settings
 # if tls_enabled set to false, do not generate any tls relative stuffs
@@ -88,8 +114,8 @@ listener_security_protocol_map:
   SASL_SSL: SASL_SSL
   CONTROLLER: PLAINTEXT
 
-sasl_mechanism_inter_broker_protocol: "GSSAPI"
-sasl_enabled_mechanisms: "GSSAPI"
+sasl_mechanism_inter_broker_protocol: "PLAIN"
+sasl_enabled_mechanisms: "GSSAPI,PLAIN"
 
 kafka_heap_opts: "-Xmx1G -Xms1G"
 num_network_threads: 3
@@ -99,19 +125,26 @@ socket_receive_buffer_bytes: 102400
 socket_request_max_bytes: 104857600
 num_recovery_threads_per_data_dir: 1
 auto_create_topics_enable: true
+transaction_state_log_replication_factor: 0    # when set to 0, means default to number of nodes
 transaction_state_log_min_isr: 1
-
-log_retention_hours: 168
+default_replication_factor: 0                  # when set to 0, means default to number of nodes
+offsets_topic_replication_factor: 0            # when set to 0, means default to number of nodes
+log_retention_hours: 48
 log_retention_bytes: 0
+max_message_bytes: 6291528
 
+# Kraft Mode Only
+controller_port: 9098
 controller_listener_names:
 - CONTROLLER
 
 ################################## zookeeper server settings
-# zookeeper.properties 
+# zookeeper.properties
 zkDataDir: "{{home}}/zkDataDir"
 zkDataLogDir: "{{home}}/zkDataLogDir"
 zk_heap_opts: "-Xmx512m -Xms512m"
+zk_admin_enableServer: false
+zk_jmx_port: 22345
 
 ############################### SASL
 # use sasl plain authentication mechanism

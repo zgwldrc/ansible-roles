@@ -12,7 +12,6 @@
     - not uninstall
   include_tasks: "{{role_path}}/tasks/ca_init.yaml"
 
-
 - name: server_init
   when: 
     - "'ca' in agent_role or 'server' in agent_role "
@@ -23,13 +22,11 @@
   when:
     - not uninstall
     - "'ca' in agent_role"
-    - bootstrap
   include_tasks: "{{role_path}}/tasks/get_bootstrap_token.yaml"
 
-- name: client_init
-  when: 
-    - "'client' in agent_role"
+- name: agent acl
+  when:
     - not uninstall
-  include_tasks: "{{role_path}}/tasks/client_init.yaml"
+  include_tasks: "{{role_path}}/tasks/set_agent_token.yaml"
 
 

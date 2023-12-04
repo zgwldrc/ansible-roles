@@ -28,7 +28,7 @@
   block:
   - name: Check if deployed already
     stat:
-      path: "{{home}}"
+      path: "{{home}}/bin"
     register: deployed
 
   - name: Single Exec Deploy
@@ -101,3 +101,14 @@
     owner: "{{user}}"
     group: "{{group}}"
     recurse: yes
+
+- name: bashrc enrich
+  blockinfile:
+    path: "/home/{{user}}/.bashrc"
+    marker: "# {{systemd_name}} envs {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      export JAVA_HOME={{home}}
+      export PATH=$JAVA_HOME/bin:$PATH
+    create: true
+    owner: "{{user}}"
+    group: "{{group}}"

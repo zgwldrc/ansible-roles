@@ -3,3 +3,13 @@
   file:
     path: "{{home}}"
     state: absent
+- name: remove env from bashrc
+  blockinfile:
+    path: "/home/{{user}}/.bashrc"
+    marker: "# {{systemd_name}} envs {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      export JAVA_HOME={{home}}
+      export PATH=$JAVA_HOME/bin:$PATH
+    state: absent
+    owner: "{{user}}"
+    group: "{{group}}"   

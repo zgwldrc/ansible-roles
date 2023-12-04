@@ -1,6 +1,7 @@
-#!/usr/bin/env bash
-
-roles=$(find . -name tasks -type directory)
+#!/usr/bin/env bash -e
+scriptdir=$(dirname $0)
+basedir=$scriptdir/..
+roles=$(find $basedir -name tasks -type directory)
 mkdir -p ~/.ansible
 for role in ${roles[@]};do
   roledir=${role%/tasks}
@@ -8,6 +9,6 @@ for role in ${roles[@]};do
   if [[ ! -z "$rolename" ]];then
     mkdir -p ~/.ansible/roles/$rolename
     rsync -av "${roledir}/" ~/.ansible/roles/$rolename > /dev/null
-    echo "$rolename installed" 
+    echo "$rolename installed"
   fi
 done

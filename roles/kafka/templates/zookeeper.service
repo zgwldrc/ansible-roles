@@ -4,7 +4,7 @@ Requires=network-online.target
 After=network-online.target
 
 [Service]
-EnvironmentFile=-{{home}}/.env
+EnvironmentFile=-{{home}}/.zkenv
 Environment="KAFKA_HEAP_OPTS={{zk_heap_opts}}"
 User={{user}}
 Group={{group}}

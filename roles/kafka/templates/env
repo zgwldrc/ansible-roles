@@ -1,2 +1,8 @@
 JAVA_HOME={{java_home}}
 PATH={{java_home}}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+{% if jmx_enabled %}
+KAFKA_JMX_OPTS="{% for i in jmx_system_properties %}-D{{i}} {% endfor %}"
+JMX_PORT={{jmx_port}}
+{% endif %}
+
+

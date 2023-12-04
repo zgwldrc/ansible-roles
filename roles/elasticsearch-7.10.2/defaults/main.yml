@@ -1,3 +1,0 @@
-node_roles: ["master"]
-# node_roles: ["ca"]
-# node_roles: ["datanode"]

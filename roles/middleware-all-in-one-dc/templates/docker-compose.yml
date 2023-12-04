@@ -6,6 +6,7 @@ services:
     ports:
       - 9876:9876
     volumes:
+      - ./rocketmq/namesrv/runserver.sh:/home/rocketmq/rocketmq-4.9.3/bin/runserver.sh
       - ./rocketmq/namesrv/logs:/home/rocketmq/logs
     command: sh mqnamesrv
 
@@ -20,6 +21,7 @@ services:
     environment:
       - NAMESRV_ADDR=rmq_namesrv:9876
     volumes:
+      - ./rocketmq/broker/runbroker.sh:/home/rocketmq/rocketmq-4.9.3/bin/runbroker.sh
       - ./rocketmq/broker/logs:/home/rocketmq/logs
       - ./rocketmq/broker/store:/home/rocketmq/store
       - ./rocketmq/broker/broker.conf:/opt/rocketmq-{{rmq_version}}/conf/broker.conf
@@ -32,7 +34,9 @@ services:
       - 8080:8080
     environment:
       - JAVA_OPTS=-Drocketmq.namesrv.addr=rmq_namesrv:9876 -Dcom.rocketmq.sendMessageWithVIPChannel=false
-
+    volumes:
+      - ./rmq_console/tmp:/tmp
+      - ./rmq_console/logs:/root/logs
 
   # See: 1001
   # https://hub.docker.com/r/bitnami/zookeeper
@@ -84,8 +88,11 @@ services:
     ports:
       - 9200:9200
     volumes:
-      # - ./elasticsearch/elasticsearch.yml:/opt/bitnami/elasticsearch/config/elasticsearch.yml
+      - ./elasticsearch/elasticsearch.yml:/opt/bitnami/elasticsearch/config/elasticsearch.yml
       - ./elasticsearch/data:/bitnami/elasticsearch/data
+      - ./elasticsearch/snapshot:/bitnami/elasticsearch/snapshot
+      - ./elasticsearch/plugins:/opt/bitnami/elasticsearch/plugins
+      - ./elasticsearch/logs:/opt/bitnami/elasticsearch/logs
     environment:
       - ELASTICSEARCH_PORT_NUMBER=9200
       - ELASTICSEARCH_HEAP_SIZE={{es_heap_size}}

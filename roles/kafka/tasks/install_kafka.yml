@@ -133,6 +133,6 @@
 - name: Kafka Service Start
   systemd:
     name: "kafka"
-    state: started
+    state: "{{service_state}}"
     enabled: true
     daemon_reload: true

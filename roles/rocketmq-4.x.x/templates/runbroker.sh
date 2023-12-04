@@ -98,7 +98,7 @@ JAVA_OPT="${JAVA_OPT} -Drocketmq.client.logUseSlf4j=true"
 JAVA_OPT="${JAVA_OPT} -Dcom.sun.management.jmxremote.port=12345"
 JAVA_OPT="${JAVA_OPT} -Dcom.sun.management.jmxremote.ssl=false"
 JAVA_OPT="${JAVA_OPT} -Dcom.sun.management.jmxremote.authenticate=false"
-JAVA_OPT="${JAVA_OPT} -Djava.rmi.server.hostname=$(hostname -i)"
+JAVA_OPT="${JAVA_OPT} -Djava.rmi.server.hostname={{ansible_default_ipv4.address}}"
 JAVA_OPT="${JAVA_OPT} -Djava.net.preferIPv4Stack=true"
 JAVA_OPT="${JAVA_OPT} -javaagent:{{javaagent_opt}}"
 # jmx end

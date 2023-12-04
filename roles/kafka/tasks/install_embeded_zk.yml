@@ -63,6 +63,6 @@
 - name: "{{zk_systemd_name}} Service Start"
   systemd:
     name: "{{zk_systemd_name}}"
-    state: started
+    state: "{{service_state}}"
     enabled: true
     daemon_reload: true

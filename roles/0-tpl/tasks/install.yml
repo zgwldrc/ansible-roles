@@ -25,20 +25,26 @@
       group: "{{group}}"
 
 - name: Deploy
-  when:
-  - downloaded.stat.exists
   block:
   - name: Check if deployed already
     stat:
-      path: "{{home}}"
+      path: "{{exec_file}}"
     register: deployed
+
+  - name: "Sub Dir Under Home"
+    file:
+      path: "{{home}}/{{item}}"
+      state: directory
+      owner: "{{user}}"
+      group: "{{group}}"
+    loop: "{{home_subdirs}}"    
 
   - name: Single Exec Deploy
     when:
     - single_exec_deploy
     - not deployed.stat.exists
     block:
-    - name: "Home Dir"
+    - name: "Create Home Dir"
       file:
         path: "{{home}}"
         state: directory
@@ -47,7 +53,7 @@
     - name: Copy Single Exec File To Home
       copy:
         src: "{{download_dest}}"
-        dest: "{{home}}/"
+        dest: "{{exec_file}}"
         owner: "{{user}}"
         group: "{{group}}"
         mode: u+x
@@ -58,7 +64,7 @@
     - not deployed.stat.exists
     - not single_exec_deploy
     block:
-    - name: "Home Dir"
+    - name: "Create Home Dir"
       file:
         path: "{{home}}"
         state: directory
@@ -77,10 +83,17 @@
         remote_src: yes
 
     - name: sync to home dir
-      synchronize:
-        src: "{{r_tempdir.path}}/{{unpacked_dirname}}/"
-        dest: "{{home}}/"
-      delegate_to: "{{ inventory_hostname }}"
+      block:
+      - when: unpacked_dirname|len > 0
+        synchronize:
+          src: "{{r_tempdir.path}}/{{unpacked_dirname}}/"
+          dest: "{{home}}/"
+        delegate_to: "{{ inventory_hostname }}"
+      - when: unpacked_dirname|len == 0
+        synchronize:
+          src: "{{r_tempdir.path}}/"
+          dest: "{{home}}/"
+        delegate_to: "{{ inventory_hostname }}"
 
     - name: clean temp dir
       when: r_tempdir is defined
@@ -88,14 +101,6 @@
         path: "{{r_tempdir.path}}"
         state: absent
   
-  - name: "Sub Dir Under Home"
-    file:
-      path: "{{home}}/{{item}}"
-      state: directory
-      owner: "{{user}}"
-      group: "{{group}}"
-    loop: "{{home_subdirs}}"
-
 - name: "Config {{item.dest}} Generating "
   template:
     src: "{{item.src}}"
@@ -155,9 +160,9 @@
     group: "{{group}}"
     recurse: yes
 
-- name: Service Start
+- name: Service State Sync
   systemd:
     name: "{{systemd_name}}"
-    state: started
+    state: "{{service_state}}"
     enabled: true
-    daemon_reload: true  
+    daemon_reload: true

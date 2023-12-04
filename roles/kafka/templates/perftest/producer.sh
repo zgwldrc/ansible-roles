@@ -1,11 +1,11 @@
 #!/bin/bash
 export JAVA_HOME={{java_home}}
-id=${1:-1}
+id=${3:-1}
 # partitions
-p=${2:-3}
+p=${1:-3}
 # replics
-r=${3:-3}
-topic=test$id-$p-$r
+r=${2:-{{ansible_play_hosts|length}}}
+topic=test-$p-$r-$id
 throughput=${4:-1000}
 acks=-1
 record_size=1024

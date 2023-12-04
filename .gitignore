@@ -1,3 +1,5 @@
+.vscode
+.python-version
 ansible.cfg
 aws_ec2.yml
 playbooks

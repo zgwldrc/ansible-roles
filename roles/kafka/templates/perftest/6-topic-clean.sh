@@ -5,10 +5,10 @@
 pa=(3 6 9)
 
 # max number of topics in each category topic group defined by variable pa
-n=18
+n=3
 
 # topic replication factor in each topic group
-r=3
+r={{ansible_play_hosts|length}}
 
 for p in ${pa[@]};do
   ./topic-clean-core.sh 1 $n $p $r

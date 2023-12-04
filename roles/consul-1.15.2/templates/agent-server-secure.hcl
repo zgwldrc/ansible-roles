@@ -1,10 +1,8 @@
 # agent-server-secure.hcl
-retry_join = [{% for j in retry_join%}"{{j}}"{%if not loop.last %},{% endif %}{% endfor %}]
+retry_join = [{%- for host in (ansible_play_hosts | sort()) -%}"{{hostvars[host]['ansible_default_ipv4']['address']}}"{% if not loop.last %},{% endif %}{%- endfor +%}]
 # Data Persistence
 data_dir = "{{data_dir}}"
 disable_keyring_file = {{disable_keyring_file|lower}}
-# Logging
-log_level = "{{log_level}}"
 
 # Enable service mesh
 connect {

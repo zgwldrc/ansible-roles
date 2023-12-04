@@ -1,6 +1,6 @@
-namesrv_enabled: false
+rocketmq_role: ["broker", "namesrv"]
 brokerName: "broker-a"
-# -1 master
+# -1 master, 1 slave
 brokerId: -1
 # 指定当前broker为异步复制master,
 # - ASYNC_MASTER 异步复制Master 

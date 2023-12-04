@@ -13,6 +13,9 @@
     - {"path": "{{home}}/zookeeper/data", "owner": 1001, "group": 1001}
     - {"path": "{{home}}/kafka/data", "owner": 1001, "group": 1001}
     - {"path": "{{home}}/elasticsearch/data", "owner": 1001, "group": 1001}
+    - {"path": "{{home}}/elasticsearch/snapshot", "owner": 1001, "group": 1001}
+    - {"path": "{{home}}/elasticsearch/plugins", "owner": 1001, "group": 1001}
+    - {"path": "{{home}}/elasticsearch/logs", "owner": 1001, "group": 1001}
     - {"path": "{{home}}/kafka-ui", "owner": 100, "group": 101}
 
 - name: docker-compose

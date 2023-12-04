@@ -28,9 +28,17 @@
   block:
   - name: Check if deployed already
     stat:
-      path: "{{home}}"
+      path: "{{exec_file}}"
     register: deployed
 
+  - name: "Sub Dir Under Home"
+    file:
+      path: "{{home}}/{{item}}"
+      state: directory
+      owner: "{{user}}"
+      group: "{{group}}"
+    loop: "{{home_subdirs}}"
+    
   - name: Single Exec Deploy
     when:
     - single_exec_deploy
@@ -42,6 +50,7 @@
         state: directory
         owner: "{{user}}"
         group: "{{group}}"
+
     - name: Copy Single Exec File To Home
       copy:
         src: "{{download_dest}}"
@@ -75,26 +84,25 @@
         remote_src: yes
 
     - name: sync to home dir
-      synchronize:
-        src: "{{r_tempdir.path}}/{{unpacked_dirname}}/"
-        dest: "{{home}}/"
-      delegate_to: "{{ inventory_hostname }}"
+      block:
+      - when: unpacked_dirname|length > 0
+        synchronize:
+          src: "{{r_tempdir.path}}/{{unpacked_dirname}}/"
+          dest: "{{home}}/"
+        delegate_to: "{{ inventory_hostname }}"
+      - when: unpacked_dirname|length == 0
+        synchronize:
+          src: "{{r_tempdir.path}}/"
+          dest: "{{home}}/"
+        delegate_to: "{{ inventory_hostname }}"
 
     - name: clean temp dir
       when: r_tempdir is defined
       file: 
         path: "{{r_tempdir.path}}"
         state: absent
-  
-  - name: "Sub Dir Under Home"
-    file:
-      path: "{{home}}/{{item}}"
-      state: directory
-      owner: "{{user}}"
-      group: "{{group}}"
-    loop: "{{home_subdirs}}"
 
-- name: "Config {{item.dest}} Generating "
+- name: "Config {{item.dest}} Generating"
   template:
     src: "{{item.src}}"
     dest: "{{item.dest}}"
@@ -103,12 +111,32 @@
   loop: "{{config_files}}"
   notify:
   - restart
+  - restart namesrv
+
+- name: "Broker Config {{item.dest}} Generating"
+  template:
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
+    owner: "{{user}}"
+    group: "{{group}}"    
+  loop: "{{broker_config_files}}"
+  notify:
+  - restart
+
+- name: "NameSrv Config {{item.dest}} Generating"
+  template:
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
+    owner: "{{user}}"
+    group: "{{group}}"    
+  loop: "{{namesrv_config_files}}"
+  notify:
+  - restart namesrv
 
 - name: Sudo Rules And Bashrc Alias
   block:
   - name: Add {{namesrv_systemd_name}} Service Control Shortcuts Commands
-    when:
-    - namesrv_enabled
+    when: (("namesrv" in rocketmq_role) | lower == "true") | lower == "true"
     blockinfile:
       path: "/home/{{user}}/.bashrc"
       marker: "# {{item.long}} svcctl {mark} ANSIBLE MANAGED BLOCK"
@@ -125,8 +153,7 @@
       - {"short": "{{namesrv_systemd_short_name}}", "long": "{{namesrv_systemd_name}}"}
 
   - name: Add {{namesrv_systemd_name}} Sudoers Rules
-    when:
-    - namesrv_enabled
+    when: ("namesrv" in rocketmq_role) | lower == "true"
     blockinfile:
       path: "/etc/sudoers.d/{{user}}"
       create: true
@@ -139,7 +166,8 @@
     loop:
       - "{{namesrv_systemd_name}}"
 
-  - name: Add Service Control Shortcuts Commands
+  - name: Add {{systemd_name}} Service Control Shortcuts Commands
+    when: ("broker" in rocketmq_role) | lower == "true"
     blockinfile:
       path: "/home/{{user}}/.bashrc"
       marker: "# {{item.long}} svcctl {mark} ANSIBLE MANAGED BLOCK"
@@ -155,7 +183,8 @@
     loop:
       - {"short": "{{systemd_short_name}}", "long": "{{systemd_name}}"}
 
-  - name: Add Sudoers Rules
+  - name: Add {{systemd_name}} Sudoers Rules
+    when: ("broker" in rocketmq_role) | lower == "true"
     blockinfile:
       path: "/etc/sudoers.d/{{user}}"
       create: true
@@ -186,29 +215,19 @@
     group: "{{group}}"
     recurse: yes
 
-- name: "{{namesrv_systemd_name}} Service Start"
-  when:
-  - namesrv_enabled
+- name: "{{systemd_name}} Service Start"
+  when: ("broker" in rocketmq_role) | lower == "true"
   systemd:
-    name: "{{namesrv_systemd_name}}"
-    state: started
+    name: "{{systemd_name}}"
+    state: "{{service_state}}"
     enabled: true
     daemon_reload: true
 
-- name: "{{namesrv_systemd_name}} Service Disabled"
-  when:
-  - not namesrv_enabled
+- name: "{{namesrv_systemd_name}} Service Start"
+  when: ("namesrv" in rocketmq_role) | lower == "true"
   systemd:
     name: "{{namesrv_systemd_name}}"
-    state: stopped
-    enabled: false
-    masked: true
-    daemon_reload: true
-
-- name: Service Start
-  systemd:
-    name: "{{systemd_name}}"
-    state: started
+    state: "{{service_state}}"
     enabled: true
     daemon_reload: true
 
