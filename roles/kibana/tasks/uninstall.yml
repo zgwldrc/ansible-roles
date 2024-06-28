@@ -3,6 +3,7 @@
   systemd:
     name: "{{systemd_name}}"
     state: stopped
+  ignore_errors: true
 
 - name: remove home dir
   file:
@@ -11,40 +12,36 @@
 
 - name: remove systemd unit file
   file:
-    path: "{{item}}/{{systemd_name}}.service"
+    path: "/etc/systemd/system/{{systemd_name}}.service"
     state: absent
-  loop:
-  - "/etc/systemd/system"
-  - "/lib/systemd/system"
-  - "/usr/lib/systemd/system"
 
-- name: Remove Bashrc Alias
+- name: remove service control shortcuts commands
   blockinfile:
-    state: absent
     path: "/home/{{user}}/.bashrc"
-    marker: "# {{item.systemd_name}} svcctl {mark} ANSIBLE MANAGED BLOCK"
+    marker: "# {{item.long}} svcctl {mark} ANSIBLE MANAGED BLOCK"
     block: |
-      alias {{item.systemd_name_short}}status='sudo systemctl status {{item.systemd_name}}.service'
-      alias {{item.systemd_name_short}}start='sudo systemctl start {{item.systemd_name}}.service'
-      alias {{item.systemd_name_short}}stop='sudo systemctl stop {{item.systemd_name}}.service'
-      alias {{item.systemd_name_short}}restart='sudo systemctl restart {{item.systemd_name}}.service'
-      alias {{item.systemd_name_short}}log='journalctl -u {{item.systemd_name}}.service -f -n 200 -o cat'
+      alias {{item.short}}status='sudo systemctl status {{item.long}}.service'
+      alias {{item.short}}start='sudo systemctl start {{item.long}}.service'
+      alias {{item.short}}stop='sudo systemctl stop {{item.long}}.service'
+      alias {{item.short}}restart='sudo systemctl restart {{item.long}}.service'
+      alias {{item.short}}log='journalctl -u {{item.long}}.service -f -n 200 -o cat'
     create: true
     owner: "{{user}}"
     group: "{{group}}"
-  loop:
-    - {systemd_name_short: "{{systemd_name_short}}", systemd_name: "{{systemd_name}}"}
-
-- name: Remove Sudoers Rule
-  blockinfile:
     state: absent
+  loop:
+  - {"short": "{{systemd_short_name}}", "long": "{{systemd_name}}"}
+
+- name: remove sudo rules
+  blockinfile:
     path: "/etc/sudoers.d/{{user}}"
     create: true
     marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+    state: absent
     block: |
       {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl start {{item}}.service
       {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl stop {{item}}.service
       {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{item}}.service
       {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{item}}.service
   loop:
-    - "{{systemd_name}}"
+    - "{{systemd_name}}" 

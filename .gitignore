@@ -18,5 +18,8 @@ roles/*/files
 roles/**/files/*
 Makefile
 .DS_Store
+host_vars
+group_vars
+keys
 
 

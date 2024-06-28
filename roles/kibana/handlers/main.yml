@@ -1,6 +1,7 @@
 ---
-# handlers file for kibana-7.10.2
-- name: restart service
+- name: restart
+  when:
+    - skip_handlers | default("false") | lower == "false"
   systemd:
     name: "{{systemd_name}}"
     state: restarted

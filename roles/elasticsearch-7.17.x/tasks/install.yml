@@ -1,15 +1,21 @@
 # for elasticsearch
 - name: Set vm.max_map_count to 262144 in sysctl
   tags: ["deploy", "sysset"]
-  sysctl: name={{ item.key }} value={{ item.value }}
+  sysctl: 
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+    sysctl_file: /etc/sysctl.d/99-sysctl.conf
   loop:
     - { key: "vm.max_map_count", value: "262144" }
-    - { key: "fs.file-max", value: "65536" }
+    - { key: "fs.file-max", value: "9223372036854775807" }
 
 - name: User Create
   user:
     name: "{{user}}"
     state: present
+    shell: /bin/bash
 
 - name: Group Create
   group:
@@ -31,71 +37,47 @@
       owner: "{{user}}"
       group: "{{group}}"
 
+- name: Check if deployed already
+  stat:
+    path: "{{home}}"
+  register: deployed
+
+- name: "Check If Downloaded Again"
+  stat:
+    path: "{{download_dest}}"
+  register: downloaded
+
 - name: Deploy
   when:
   - downloaded.stat.exists
+  - not deployed.stat.exists
   block:
-  - name: Check if deployed already
-    stat:
+  - name: "Create Home Dir"
+    file:
       path: "{{home}}"
-    register: deployed
-
-  - name: Single Exec Deploy
-    when:
-    - single_exec_deploy
-    - not deployed.stat.exists
-    block:
-    - name: "Home Dir"
-      file:
-        path: "{{home}}"
-        state: directory
-        owner: "{{user}}"
-        group: "{{group}}"
-    - name: Copy Single Exec File To Home
-      copy:
-        src: "{{download_dest}}"
-        dest: "{{home}}/"
-        owner: "{{user}}"
-        group: "{{group}}"
-        mode: u+x
-        remote_src: true
-    
-  - name: "Package Deploy"
-    when: 
-    - not deployed.stat.exists
-    - not single_exec_deploy
-    block:
-    - name: "Home Dir"
-      file:
-        path: "{{home}}"
-        state: directory
-        owner: "{{user}}"
-        group: "{{group}}"
-
-    - name: create temp dir
-      tempfile:
-        state: directory
-      register: r_tempdir
-
-    - name: unarchive
-      unarchive:
-        src: "{{download_dest}}"
-        dest: "{{r_tempdir.path}}"
-        remote_src: yes
-
-    - name: sync to home dir
-      synchronize:
-        src: "{{r_tempdir.path}}/{{unpacked_dirname}}/"
-        dest: "{{home}}/"
-      delegate_to: "{{ inventory_hostname }}"
-
-    - name: clean temp dir
-      when: r_tempdir is defined
-      file: 
-        path: "{{r_tempdir.path}}"
-        state: absent
-  
-  - name: "Sub Dir Under Home"
+      state: directory
+      owner: "{{user}}"
+      group: "{{group}}"
+  - name: create temp dir
+    tempfile:
+      state: directory
+    register: r_tempdir
+  - name: unarchive
+    unarchive:
+      src: "{{download_dest}}"
+      dest: "{{r_tempdir.path}}"
+      remote_src: yes
+  - name: sync to home dir
+    synchronize:
+      src: "{{r_tempdir.path}}/{{unpacked_dirname}}/"
+      dest: "{{home}}/"
+    delegate_to: "{{ inventory_hostname }}"
+  - name: clean temp dir
+    when: r_tempdir is defined
+    file: 
+      path: "{{r_tempdir.path}}"
+      state: absent
+  - name: "Create Sub Dir Under Home"
     file:
       path: "{{home}}/{{item}}"
       state: directory
@@ -108,8 +90,10 @@
     src: "{{item.src}}"
     dest: "{{item.dest}}"
     owner: "{{user}}"
-    group: "{{group}}"    
+    group: "{{group}}"
   loop: "{{config_files}}"
+  notify:
+  - restart
 
 - name: Sudo Rules And Bashrc Alias
   block:
@@ -143,8 +127,6 @@
       - "{{systemd_name}}"
 
 - name: File Copy Tasks
-  when:
-  - file_copies
   copy:
     src: "{{item.src}}"
     dest: "{{item.dest}}"
@@ -169,5 +151,5 @@
     name: "{{systemd_name}}"
     state: started
     enabled: true
-    daemon_reload: true  
+    daemon_reload: true
 

@@ -1,8 +1,14 @@
----
+# 需要卸载应用时，通过命令行传递这个变量
+# ansible-playbook pb.yaml -e uninstall=true
 uninstall: false
+# 是否跳过handler执行，默认配置修改后会通知handler完成服务重启，
+# 可以通过设置为True来跳过handler执行
+skip_handlers: false
 user: "app_user"
 group: "app_group"
-skip_handlers: false
+
+systemd_name: "kafka"
+systemd_short_name: "kfk"
 # define service state after deloy
 # possible values: started, stopped, restarted, reloaded
 # https://docs.ansible.com/ansible/latest/collections/ansible/builtin/systemd_service_module.html#parameter-state

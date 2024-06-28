@@ -1,98 +1,127 @@
----
-- name: user create
-  tags: ["deploy", "user"]
+- name: User Create
   user:
     name: "{{user}}"
     state: present
+    shell: /bin/bash
 
-- name: group create
-  tags: ["deploy", "group"]
+- name: Group Create
   group:
     name: "{{group}}"
     state: present
 
-- name: ensure home and relavtive dirs created
-  tags: ["deploy", "home"]
-  file:
-    path: "{{item}}"
-    state: directory
-    owner: "{{user}}"
-    group: "{{group}}"
-  loop:
-    - "{{home}}"
+- name: Download
+  block:
+  - name: "Check If Downloaded"
+    stat:
+      path: "{{download_dest}}"
+    register: downloaded
+  - name: "Downloading"
+    when: 
+    - not downloaded.stat.exists
+    copy:
+      src: "{{archive_file}}"
+      dest: "{{download_dest}}"
+      owner: "{{user}}"
+      group: "{{group}}"
 
-- name: Environement File
-  tags: ["deploy", "env"]
-  template:
-    src: env
-    dest: "{{home}}/.env"
+- name: Check if deployed already
+  stat:
+    path: "{{home}}"
+  register: deployed
 
-- name: check if downloaded
-  tags: ["deploy", "download"]
+- name: "Check If Downloaded Again"
   stat:
     path: "{{download_dest}}"
   register: downloaded
 
-- name: "Download"
-  tags: ["deploy", "download"]
-  when: not downloaded.stat.exists
-  copy:
-    src: "{{archive_file}}"
-    dest: "{{download_dest}}"
-
-- name: check if deployed already
-  tags: ["deploy"]
-  stat:
-    path: "{{home}}/bin"
-  register: deployed
-
-- name: "Deploy"
-  tags: ["deploy"]
-  when: not deployed.stat.exists
+- name: Deploy
+  when:
+  - downloaded.stat.exists
+  - not deployed.stat.exists
   block:
+  - name: "Create Home Dir"
+    file:
+      path: "{{home}}"
+      state: directory
+      owner: "{{user}}"
+      group: "{{group}}"
   - name: create temp dir
     tempfile:
       state: directory
     register: r_tempdir
-
   - name: unarchive
     unarchive:
       src: "{{download_dest}}"
       dest: "{{r_tempdir.path}}"
       remote_src: yes
-
   - name: sync to home dir
     synchronize:
-      src: "{{r_tempdir.path}}/kibana-{{version}}-linux-x86_64/"
+      src: "{{r_tempdir.path}}/{{unpacked_dirname}}/"
       dest: "{{home}}/"
     delegate_to: "{{ inventory_hostname }}"
-
   - name: clean temp dir
     when: r_tempdir is defined
     file: 
       path: "{{r_tempdir.path}}"
       state: absent
+  - name: "Create Sub Dir Under Home"
+    file:
+      path: "{{home}}/{{item}}"
+      state: directory
+      owner: "{{user}}"
+      group: "{{group}}"
+    loop: "{{home_subdirs}}"
 
-- name: "Systemd Unit File"
-  tags: ["deploy", "config", "systemd"]
+- name: "Config {{item.dest}} Generating "
   template:
-    src: "{{item}}"
-    dest: "/etc/systemd/system/{{item}}"
-  loop:
-  - "{{systemd_name}}.service"
-
-- name: "Config Files"
-  tags: ["deploy", "config", "kbnconfig"]
-  template:
-    src: "{{item}}"
-    dest: "{{home}}/config/{{item}}"
-  loop:
-  - "kibana.yml"
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop: "{{config_files}}"
   notify:
-  - restart service
+  - restart
 
-- name: Home Dir Owner And Group
-  tags: ["deploy", "config", "ownergroup"]
+- name: Sudo Rules And Bashrc Alias
+  block:
+  - name: Add Service Control Shortcuts Commands
+    blockinfile:
+      path: "/home/{{user}}/.bashrc"
+      marker: "# {{item.long}} svcctl {mark} ANSIBLE MANAGED BLOCK"
+      block: |
+        alias {{item.short}}status='sudo systemctl status {{item.long}}.service'
+        alias {{item.short}}start='sudo systemctl start {{item.long}}.service'
+        alias {{item.short}}stop='sudo systemctl stop {{item.long}}.service'
+        alias {{item.short}}restart='sudo systemctl restart {{item.long}}.service'
+        alias {{item.short}}log='journalctl -u {{item.long}}.service -f -n 200 -o cat'
+      create: true
+      owner: "{{user}}"
+      group: "{{group}}"
+    loop:
+      - {"short": "{{systemd_short_name}}", "long": "{{systemd_name}}"}
+
+  - name: Add Sudoers Rules
+    blockinfile:
+      path: "/etc/sudoers.d/{{user}}"
+      create: true
+      marker: "# {{item}} {mark} ANSIBLE MANAGED BLOCK"
+      block: |
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl start {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl stop {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl restart {{item}}.service
+        {{user}} ALL=(root) NOPASSWD: /usr/bin/systemctl status {{item}}.service
+    loop:
+      - "{{systemd_name}}"
+
+- name: File Copy Tasks
+  copy:
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
+    owner: "{{user}}"
+    group: "{{group}}"
+  loop: "{{file_copies}}"
+
+- name: Ensure Home Dir Owner And Group
   file:
     path: "{{home}}"
     state: directory
@@ -100,14 +129,10 @@
     group: "{{group}}"
     recurse: yes
 
-- name: Sudoer Rules
-  import_tasks: "{{role_path}}/tasks/sudorules.yml"
-
 - name: Service Start
-  tags: ["deploy", "start"]
-  when: start
   systemd:
     name: "{{systemd_name}}"
     state: started
     enabled: true
     daemon_reload: true
+

@@ -2,6 +2,7 @@
 - name: uninstall
   when: uninstall
   import_tasks: "{{role_path}}/tasks/uninstall.yml"
+
 - name: install
   when: 
   - not uninstall

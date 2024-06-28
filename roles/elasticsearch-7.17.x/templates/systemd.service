@@ -12,7 +12,7 @@ ExecStart={{exec_start}}
 {% if exec_stop %}
 ExecStop={{exec_stop}}
 {% endif %}
-Restart={{restart}}
+Restart={{systemd_restart}}
 LimitNOFILE=65536
 
 [Install]

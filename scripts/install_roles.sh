@@ -1,7 +1,7 @@
 #!/usr/bin/env bash -e
 scriptdir=$(dirname $0)
 basedir=$scriptdir/..
-roles=$(find $basedir -name tasks -type directory)
+roles=$(find $basedir -name tasks -type d)
 mkdir -p ~/.ansible
 for role in ${roles[@]};do
   roledir=${role%/tasks}
