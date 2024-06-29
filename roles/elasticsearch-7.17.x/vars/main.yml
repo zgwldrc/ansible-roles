@@ -34,6 +34,8 @@ file_copies: []
 # - src: jmx_prometheus_javaagent-0.18.0.jar
 #   dest: "{{home}}/bin/jmx_prometheus_javaagent-0.18.0.jar"
 config_files:
+- src: functions.sh
+  dest: /home/{{user}}/.functions
 - src: systemd.service
   dest: /etc/systemd/system/{{systemd_name}}.service
 - src: "env"
@@ -66,4 +68,4 @@ xpack_security_enabled: false
 # cluster.name
 cluster_name: "elasticsearch"
 # action.auto_create_index
-action_auto_create_index: .monitoring*,.watches,.triggered_watches,.watcher-history*,.ml*
+action_auto_create_index: "*"

@@ -107,6 +107,7 @@
         alias {{item.short}}stop='sudo systemctl stop {{item.long}}.service'
         alias {{item.short}}restart='sudo systemctl restart {{item.long}}.service'
         alias {{item.short}}log='journalctl -u {{item.long}}.service -f -n 200 -o cat'
+        [ -e /home/{{user}}/.functions ] && source /home/{{user}}/.functions
       create: true
       owner: "{{user}}"
       group: "{{group}}"
